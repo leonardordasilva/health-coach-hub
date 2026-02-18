@@ -11,6 +11,7 @@ import { calculateAge, formatDate, getMetricDelta, calculateBMI, calculateBodyTy
 import HealthRecordForm from "@/components/HealthRecordForm";
 import HealthRecordDetail from "@/components/HealthRecordDetail";
 import HealthRecordsList from "@/components/HealthRecordsList";
+import HealthAssessment from "@/components/HealthAssessment";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface HealthRecord {
@@ -324,6 +325,17 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
+        {/* AI Health Assessment — latest record */}
+        {latestRecord && profile && (
+          <Card className="shadow-health border-border/50">
+            <CardContent className="p-5">
+              <HealthAssessment
+                record={latestRecord}
+                profile={{ height: profile.height ?? null, birth_date: profile.birth_date ?? null, age }}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Analytics Panel */}
         {records.length >= 2 && (
