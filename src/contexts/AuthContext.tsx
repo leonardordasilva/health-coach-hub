@@ -10,6 +10,7 @@ interface Profile {
   birth_date: string | null;
   weight: number | null;
   height: number | null;
+  gender: string | null;
   is_default_password: boolean;
   avatar_url: string | null;
   created_at: string;

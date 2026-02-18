@@ -76,6 +76,7 @@ export type Database = {
           birth_date: string | null
           created_at: string
           email: string
+          gender: string | null
           height: number | null
           id: string
           is_default_password: boolean
@@ -87,6 +88,7 @@ export type Database = {
           birth_date?: string | null
           created_at?: string
           email: string
+          gender?: string | null
           height?: number | null
           id: string
           is_default_password?: boolean
@@ -98,6 +100,7 @@ export type Database = {
           birth_date?: string | null
           created_at?: string
           email?: string
+          gender?: string | null
           height?: number | null
           id?: string
           is_default_password?: boolean

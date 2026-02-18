@@ -331,7 +331,8 @@ export default function Dashboard() {
             <CardContent className="p-5">
               <HealthAssessment
                 record={latestRecord}
-                profile={{ height: profile.height ?? null, birth_date: profile.birth_date ?? null, age }}
+                allRecords={records}
+                profile={{ height: profile.height ?? null, birth_date: profile.birth_date ?? null, age, gender: profile.gender ?? null }}
               />
             </CardContent>
           </Card>
