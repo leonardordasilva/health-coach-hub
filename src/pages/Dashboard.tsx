@@ -174,16 +174,16 @@ export default function Dashboard() {
   const last = sortedByDate[sortedByDate.length - 1];      // mais recente
   const secondLast = sortedByDate[sortedByDate.length - 2]; // penúltimo
 
-  // Chart data — filteredRecords ordenados cronologicamente
+  // Chart data — todos os registros ordenados cronologicamente (sem filtro de ano)
   const chartData = useMemo(() => {
-    return [...filteredRecords]
+    return [...records]
       .sort((a, b) => a.record_date.localeCompare(b.record_date))
       .map(r => ({
         date: new Date(r.record_date + "T00:00:00").toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
         value: r[selectedChartMetric.key] as number | null,
       }))
       .filter(d => d.value !== null);
-  }, [filteredRecords, selectedChartMetric]);
+  }, [records, selectedChartMetric]);
 
   // CSV Export
   const exportToCSV = () => {
@@ -387,7 +387,7 @@ export default function Dashboard() {
         )}
 
         {/* Evolution Chart */}
-        {filteredRecords.length >= 2 && (
+        {records.length >= 2 && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-foreground">Evolução Temporal</h2>
             <Card className="shadow-health border-border/50">
@@ -410,7 +410,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 {chartData.length < 2 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">Dados insuficientes para exibir o gráfico desta métrica neste período.</p>
+                  <p className="text-sm text-muted-foreground text-center py-8">Dados insuficientes para exibir o gráfico desta métrica.</p>
                 ) : (
                   <ResponsiveContainer width="100%" height={220}>
                     <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
