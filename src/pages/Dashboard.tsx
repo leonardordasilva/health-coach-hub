@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Timer, Download } from "lucide-react";
 import BodyTypeIcon from "@/components/BodyTypeIcon";
-import { calculateAge, formatDate, getMetricDelta, calculateBMI, calculateBodyType, calculateBodyAge } from "@/lib/health";
+import { calculateAge, formatDate, getMetricDelta, calculateBMI, calculateBodyType, calculateBodyAge, formatMonthYear } from "@/lib/health";
 import HealthRecordForm from "@/components/HealthRecordForm";
 import HealthRecordDetail from "@/components/HealthRecordDetail";
 import HealthRecordsList from "@/components/HealthRecordsList";
@@ -351,8 +351,11 @@ export default function Dashboard() {
               <Card className="shadow-health border-border/50">
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    Evolução total (1º → último)
+                    Evolução total
                   </CardTitle>
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">
+                    {formatMonthYear(first?.record_date)} → {formatMonthYear(last?.record_date)}
+                  </p>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {deltaItems.map((item) => (
@@ -366,8 +369,11 @@ export default function Dashboard() {
                 <Card className="shadow-health border-border/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Período recente (penúltimo → último)
+                      Período recente
                     </CardTitle>
+                    <p className="text-xs text-muted-foreground/70 mt-0.5">
+                      {formatMonthYear(secondLast?.record_date)} → {formatMonthYear(last?.record_date)}
+                    </p>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {deltaItems.map((item) => (
