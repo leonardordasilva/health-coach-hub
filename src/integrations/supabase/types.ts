@@ -20,6 +20,7 @@ export type Database = {
           body_fat: number | null
           bone_mass: number | null
           created_at: string
+          encrypted_data: string | null
           id: string
           muscle: number | null
           protein: number | null
@@ -34,6 +35,7 @@ export type Database = {
           body_fat?: number | null
           bone_mass?: number | null
           created_at?: string
+          encrypted_data?: string | null
           id?: string
           muscle?: number | null
           protein?: number | null
@@ -48,6 +50,7 @@ export type Database = {
           body_fat?: number | null
           bone_mass?: number | null
           created_at?: string
+          encrypted_data?: string | null
           id?: string
           muscle?: number | null
           protein?: number | null

@@ -53,14 +53,21 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
     if (!user) return;
     setSaving(true);
     try {
-      const payload = { ...form, user_id: user.id };
-      let error;
-      if (record?.id) {
-        ({ error } = await supabase.from("health_records").update(payload).eq("id", record.id));
-      } else {
-        ({ error } = await supabase.from("health_records").insert(payload));
-      }
-      if (error) throw error;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const payload = record?.id ? { ...form, id: record.id } : form;
+
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/health-records-write`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }
+      );
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Erro desconhecido");
       toast.success(record?.id ? "Registro atualizado!" : "Registro criado!");
       onSaved();
     } catch (err: unknown) {

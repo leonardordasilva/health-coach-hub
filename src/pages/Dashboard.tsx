@@ -65,12 +65,21 @@ export default function Dashboard() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchRecords = async () => {
-    const { data, error } = await supabase
-      .from("health_records")
-      .select("*")
-      .order("record_date", { ascending: false });
-    if (!error && data) setRecords(data as HealthRecord[]);
-    setLoading(false);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/health-records-read`,
+        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
+      );
+      const json = await res.json();
+      if (json.records) setRecords(json.records as HealthRecord[]);
+    } catch (err) {
+      console.error("Error fetching health records:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchRecords(); }, []);
