@@ -165,10 +165,14 @@ export default function Dashboard() {
     return records.filter(r => new Date(r.record_date + "T00:00:00").getFullYear() === selectedYear);
   }, [records, selectedYear]);
 
-  // Analytics: first vs last, last-1 vs last (all records)
-  const first = records[records.length - 1];
-  const last = records[0];
-  const secondLast = records[1];
+  // Analytics: ordenar por data para garantir evolução correta (mais antigo → mais recente)
+  const sortedByDate = useMemo(
+    () => [...records].sort((a, b) => a.record_date.localeCompare(b.record_date)),
+    [records]
+  );
+  const first = sortedByDate[0];                            // mais antigo
+  const last = sortedByDate[sortedByDate.length - 1];      // mais recente
+  const secondLast = sortedByDate[sortedByDate.length - 2]; // penúltimo
 
   // Chart data — filteredRecords ordenados cronologicamente
   const chartData = useMemo(() => {
