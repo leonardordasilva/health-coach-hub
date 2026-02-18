@@ -14,6 +14,23 @@ async function generateSecureToken(): Promise<string> {
   return encodeHex(bytes);
 }
 
+// Simple in-memory rate limiter (resets on cold start)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 3;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  entry.count += 1;
+  if (entry.count > RATE_LIMIT_MAX) return true;
+  return false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -62,6 +79,16 @@ Deno.serve(async (req) => {
     let targetEmail = email;
     let targetUserId = userId;
 
+    // Rate limit by email for non-admin calls
+    if (!isAdminCall && targetEmail) {
+      if (isRateLimited(targetEmail.toLowerCase())) {
+        // Return neutral response to avoid email enumeration
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     if (!targetUserId && email) {
       const { data: profile } = await supabaseAdmin
         .from("profiles").select("id, email").eq("email", email).single();
@@ -79,7 +106,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // APP_URL must be configured as a secret — no hardcoded fallback
+    // APP_URL must be configured as a secret
     const appUrl = Deno.env.get("APP_URL");
     if (!appUrl) {
       console.error("APP_URL secret is not configured.");

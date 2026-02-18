@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,9 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Users, Plus, Search, Trash2, RefreshCw, Eye, UserPlus, Mail, Calendar, Weight, User } from "lucide-react";
+import { Users, Plus, Search, Trash2, RefreshCw, Eye, UserPlus, Mail, Calendar, Weight, User, TrendingUp } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/health";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface UserProfile {
   id: string;
@@ -56,6 +57,24 @@ export default function AdminPanel() {
 
   useEffect(() => { fetchUsers(); }, []);
 
+  // Build monthly growth chart data (last 6 months)
+  const growthChartData = useMemo(() => {
+    const now = new Date();
+    const months: { month: string; count: number }[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+      const count = users.filter(u => {
+        const c = new Date(u.created_at);
+        return c.getFullYear() === d.getFullYear() && c.getMonth() === d.getMonth();
+      }).length;
+      months.push({ month: label, count });
+    }
+    return months;
+  }, [users]);
+
+  const totalWithRecords = users.length; // placeholder — real count would need a join query
+
   const filtered = users.filter(u =>
     u.email.toLowerCase().includes(search.toLowerCase()) ||
     (u.name ?? "").toLowerCase().includes(search.toLowerCase())
@@ -65,7 +84,6 @@ export default function AdminPanel() {
     e.preventDefault();
     setCreating(true);
     try {
-      // Password is generated server-side by the create-user Edge Function
       const { error } = await supabase.functions.invoke("create-user", {
         body: { email: form.email },
       });
@@ -169,6 +187,32 @@ export default function AdminPanel() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Growth Chart */}
+        {!loading && users.length > 0 && (
+          <Card className="shadow-health border-border/50">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                Crescimento de usuários — últimos 6 meses
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={growthChartData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                    formatter={(value: number) => [value, "Novos usuários"]}
+                  />
+                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Table */}
         <Card className="shadow-health border-border/50">

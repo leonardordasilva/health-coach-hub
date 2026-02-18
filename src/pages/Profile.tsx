@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, Camera, Save, AlertTriangle } from "lucide-react";
+import { User, Camera, Save, AlertTriangle, Target } from "lucide-react";
 import { useAvatarUpload } from "@/hooks/useAvatarUpload";
 
 export default function Profile() {
@@ -24,6 +24,8 @@ export default function Profile() {
     weight: profile?.weight?.toString() ?? "",
     height: profile?.height?.toString() ?? "",
     gender: profile?.gender ?? "",
+    weight_goal: profile?.weight_goal?.toString() ?? "",
+    body_fat_goal: profile?.body_fat_goal?.toString() ?? "",
   });
 
   useEffect(() => {
@@ -34,6 +36,8 @@ export default function Profile() {
         weight: profile.weight?.toString() ?? "",
         height: profile.height?.toString() ?? "",
         gender: profile.gender ?? "",
+        weight_goal: profile.weight_goal?.toString() ?? "",
+        body_fat_goal: profile.body_fat_goal?.toString() ?? "",
       });
     }
   }, [profile]);
@@ -52,6 +56,8 @@ export default function Profile() {
         weight: form.weight ? parseFloat(form.weight) : null,
         height: form.height ? parseFloat(form.height) : null,
         gender: form.gender || null,
+        weight_goal: form.weight_goal ? parseFloat(form.weight_goal) : null,
+        body_fat_goal: form.body_fat_goal ? parseFloat(form.body_fat_goal) : null,
       };
       const { error } = await supabase.from("profiles").update(updates).eq("id", profile.id);
       if (error) throw error;
@@ -183,6 +189,35 @@ export default function Profile() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Goals section */}
+              <div className="pt-2 border-t border-border/50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Target className="w-4 h-4 text-primary" />
+                  <p className="text-sm font-semibold text-foreground">Minhas metas</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="weight_goal">Meta de peso (kg)</Label>
+                    <Input
+                      id="weight_goal" type="number" step="0.1" min="20" max="500"
+                      value={form.weight_goal}
+                      onChange={(e) => setForm({ ...form, weight_goal: e.target.value })}
+                      placeholder="65.0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="body_fat_goal">Meta de gordura (%)</Label>
+                    <Input
+                      id="body_fat_goal" type="number" step="0.1" min="1" max="70"
+                      value={form.body_fat_goal}
+                      onChange={(e) => setForm({ ...form, body_fat_goal: e.target.value })}
+                      placeholder="20.0"
+                    />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">As metas serão exibidas no dashboard como barras de progresso.</p>
               </div>
 
               <Button

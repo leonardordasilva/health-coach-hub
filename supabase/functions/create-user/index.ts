@@ -1,10 +1,19 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+function getAppOrigin(): string {
+  return Deno.env.get("APP_URL") ?? "*";
+}
+
+function makeCorsHeaders(req: Request): Record<string, string> {
+  const appUrl = getAppOrigin();
+  const origin = req.headers.get("Origin") ?? "";
+  const allowed = appUrl === "*" || origin === appUrl ? origin || "*" : appUrl;
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 function generatePassword(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*";
@@ -24,6 +33,7 @@ function generatePassword(): string {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = makeCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -69,7 +79,6 @@ Deno.serve(async (req) => {
 
     const CreateUserSchema = z.object({
       email: z.string().email().max(255),
-      password: z.string().min(8).max(100).optional(),
     });
 
     let validated: z.infer<typeof CreateUserSchema>;
@@ -82,8 +91,9 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password } = validated;
-    const tempPassword = password || generatePassword();
+    const { email } = validated;
+    // Always generate password server-side — never accept from client
+    const tempPassword = generatePassword();
 
     // Create user in Auth
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -136,7 +146,7 @@ Deno.serve(async (req) => {
     console.error("create-user error:", err);
     return new Response(JSON.stringify({ error: "An error occurred. Please try again." }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...makeCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

@@ -23,6 +23,23 @@ function generatePassword(): string {
   return password.split("").sort(() => Math.random() - 0.5).join("");
 }
 
+// Simple in-memory rate limiter per email (resets on cold start)
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 3;
+const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+
+function isRateLimited(key: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitMap.get(key);
+  if (!entry || now > entry.resetAt) {
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return false;
+  }
+  entry.count += 1;
+  if (entry.count > RATE_LIMIT_MAX) return true;
+  return false;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -47,6 +64,13 @@ Deno.serve(async (req) => {
     }
 
     const { email } = validated;
+
+    // Rate limit by email
+    if (isRateLimited(email.toLowerCase())) {
+      return new Response(JSON.stringify({ error: "Muitas tentativas. Aguarde alguns minutos." }), {
+        status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Check if email already exists in profiles
     const { data: existingProfile } = await supabaseAdmin

@@ -5,8 +5,9 @@ import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { User, Calendar, Weight, Ruler, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Timer, ChevronDown, AlertCircle } from "lucide-react";
+import { User, Calendar, Weight, Ruler, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Timer, ChevronDown, AlertCircle, Target } from "lucide-react";
 import BodyTypeIcon from "@/components/BodyTypeIcon";
 import { calculateAge, formatDate, getMetricDelta, calculateBMI, calculateBodyType, calculateBodyAge, formatMonthYear } from "@/lib/health";
 import HealthRecordForm from "@/components/HealthRecordForm";
@@ -287,6 +288,66 @@ export default function Dashboard() {
                 allRecords={records}
                 profile={{ height: profile.height ?? null, birth_date: profile.birth_date ?? null, age, gender: profile.gender ?? null }}
               />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Goals Progress */}
+        {latestRecord && (profile?.weight_goal || profile?.body_fat_goal) && (
+          <Card className="shadow-health border-border/50">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                <Target className="w-4 h-4 text-primary" />
+                Progresso das metas
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {profile.weight_goal && profile.weight && (
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Peso</span>
+                    <span className="font-medium text-foreground">
+                      {Number(latestRecord.weight).toFixed(1)} kg
+                      <span className="text-muted-foreground"> / meta: {profile.weight_goal} kg</span>
+                    </span>
+                  </div>
+                  <Progress
+                    value={Math.min(100, Math.max(0,
+                      ((profile.weight - latestRecord.weight) / (profile.weight - profile.weight_goal)) * 100
+                    ))}
+                    className="h-2"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {latestRecord.weight <= profile.weight_goal
+                      ? "✅ Meta atingida!"
+                      : `Faltam ${(latestRecord.weight - profile.weight_goal).toFixed(1)} kg`}
+                  </p>
+                </div>
+              )}
+              {profile.body_fat_goal && latestRecord.body_fat != null && (
+                <div className="space-y-1.5">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Gordura corporal</span>
+                    <span className="font-medium text-foreground">
+                      {Number(latestRecord.body_fat).toFixed(1)}%
+                      <span className="text-muted-foreground"> / meta: {profile.body_fat_goal}%</span>
+                    </span>
+                  </div>
+                  <Progress
+                    value={Math.min(100, Math.max(0,
+                      profile.body_fat_goal < latestRecord.body_fat
+                        ? ((latestRecord.body_fat - latestRecord.body_fat) / (latestRecord.body_fat - profile.body_fat_goal)) * 100
+                        : 100
+                    ))}
+                    className="h-2"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {latestRecord.body_fat <= profile.body_fat_goal
+                      ? "✅ Meta atingida!"
+                      : `Faltam ${(latestRecord.body_fat - profile.body_fat_goal).toFixed(1)} pontos percentuais`}
+                  </p>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
