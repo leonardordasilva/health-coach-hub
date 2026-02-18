@@ -74,6 +74,38 @@ export function calculateAge(birthDate: string): number {
   return age;
 }
 
+export function calculateBodyAge(
+  chronologicalAge: number,
+  bmi: number,
+  bodyFat: number | null,
+  muscle: number | null,
+  weight: number
+): number {
+  let bodyAge = chronologicalAge;
+
+  // BMI adjustment
+  if (bmi > 30) bodyAge += (bmi - 30) * 0.5;
+  else if (bmi > 25) bodyAge += (bmi - 25) * 0.3;
+  else if (bmi < 18.5) bodyAge += (18.5 - bmi) * 0.3;
+
+  // Body fat adjustment
+  if (bodyFat != null) {
+    if (bodyFat > 30) bodyAge += (bodyFat - 30) * 0.4;
+    else if (bodyFat > 25) bodyAge += (bodyFat - 25) * 0.2;
+    else if (bodyFat < 12) bodyAge -= (12 - bodyFat) * 0.3;
+    else if (bodyFat < 18) bodyAge -= (18 - bodyFat) * 0.2;
+  }
+
+  // Muscle ratio adjustment
+  if (muscle != null && weight > 0) {
+    const muscleRatio = (muscle / weight) * 100;
+    if (muscleRatio > 45) bodyAge -= 3;
+    else if (muscleRatio > 40) bodyAge -= 1.5;
+  }
+
+  return Math.max(Math.round(bodyAge), 10);
+}
+
 export function generatePassword(): string {
   const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
   const lower = "abcdefghijklmnopqrstuvwxyz";
