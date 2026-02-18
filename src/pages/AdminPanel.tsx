@@ -10,12 +10,13 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Users, Plus, Search, Trash2, RefreshCw, Eye, UserPlus, Mail, Calendar, Weight } from "lucide-react";
+import { Users, Plus, Search, Trash2, RefreshCw, Eye, UserPlus, Mail, Calendar, Weight, User } from "lucide-react";
 import { formatDate, formatDateTime, generatePassword } from "@/lib/health";
 
 interface UserProfile {
   id: string;
   email: string;
+  name: string | null;
   birth_date: string | null;
   weight: number | null;
   height: number | null;
@@ -35,6 +36,7 @@ export default function AdminPanel() {
 
   const [form, setForm] = useState({
     email: "",
+    name: "",
     birth_date: "",
     weight: "",
     height: "",
@@ -49,12 +51,12 @@ export default function AdminPanel() {
 
     if (roleData && roleData.length > 0) {
       const userIds = roleData.map((r) => r.user_id);
-      const { data, error } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("id, email, birth_date, weight, height, is_default_password, created_at")
+        .select("id, email, name, birth_date, weight, height, is_default_password, created_at")
         .in("id", userIds)
         .order("created_at", { ascending: false });
-      if (!error && data) setUsers(data as UserProfile[]);
+      if (!profileError && profileData) setUsers(profileData as UserProfile[]);
     } else {
       setUsers([]);
     }
@@ -64,7 +66,8 @@ export default function AdminPanel() {
   useEffect(() => { fetchUsers(); }, []);
 
   const filtered = users.filter(u =>
-    u.email.toLowerCase().includes(search.toLowerCase())
+    u.email.toLowerCase().includes(search.toLowerCase()) ||
+    (u.name ?? "").toLowerCase().includes(search.toLowerCase())
   );
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -75,6 +78,7 @@ export default function AdminPanel() {
       const { data, error } = await supabase.functions.invoke("create-user", {
         body: {
           email: form.email,
+          name: form.name || null,
           password,
           birth_date: form.birth_date || null,
           weight: form.weight ? parseFloat(form.weight) : null,
@@ -84,7 +88,7 @@ export default function AdminPanel() {
       if (error) throw error;
       toast.success(`Usuário criado! Senha enviada para ${form.email}`);
       setShowCreateModal(false);
-      setForm({ email: "", birth_date: "", weight: "", height: "" });
+      setForm({ email: "", name: "", birth_date: "", weight: "", height: "" });
       fetchUsers();
     } catch (err: unknown) {
       console.error("Create user error:", err);
@@ -293,6 +297,17 @@ export default function AdminPanel() {
               />
             </div>
             <div className="space-y-2">
+              <Label htmlFor="new-name">Nome</Label>
+              <Input
+                id="new-name"
+                type="text"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder="Nome completo"
+                maxLength={120}
+              />
+            </div>
+            <div className="space-y-2">
               <Label htmlFor="new-birth">Data de nascimento</Label>
               <Input
                 id="new-birth"
@@ -358,6 +373,15 @@ export default function AdminPanel() {
                     <p className="text-sm font-medium">{selectedUser.email}</p>
                   </div>
                 </div>
+                {selectedUser.name && (
+                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                    <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Nome</p>
+                      <p className="text-sm font-medium">{selectedUser.name}</p>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                     <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />

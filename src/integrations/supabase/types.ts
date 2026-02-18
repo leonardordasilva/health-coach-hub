@@ -76,6 +76,7 @@ export type Database = {
           height: number | null
           id: string
           is_default_password: boolean
+          name: string | null
           weight: number | null
         }
         Insert: {
@@ -86,6 +87,7 @@ export type Database = {
           height?: number | null
           id: string
           is_default_password?: boolean
+          name?: string | null
           weight?: number | null
         }
         Update: {
@@ -96,6 +98,7 @@ export type Database = {
           height?: number | null
           id?: string
           is_default_password?: boolean
+          name?: string | null
           weight?: number | null
         }
         Relationships: []

@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
 
     const CreateUserSchema = z.object({
       email: z.string().email().max(255),
+      name: z.string().max(120).optional().nullable(),
       password: z.string().min(8).max(100).optional(),
       birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
       weight: z.number().min(20).max(500).optional().nullable(),
@@ -85,7 +86,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, birth_date, weight, height } = validated;
+    const { email, name, password, birth_date, weight, height } = validated;
     const tempPassword = password || generatePassword();
 
     // Create user in Auth
@@ -100,6 +101,7 @@ Deno.serve(async (req) => {
 
     // Update profile with additional data
     const updates: Record<string, unknown> = { is_default_password: true };
+    if (name) updates.name = name;
     if (birth_date) updates.birth_date = birth_date;
     if (weight) updates.weight = weight;
     if (height) updates.height = height;

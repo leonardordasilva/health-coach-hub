@@ -1,0 +1,207 @@
+import { useState, useRef } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import AppLayout from "@/components/AppLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { User, Camera, Save } from "lucide-react";
+
+export default function Profile() {
+  const { profile, refreshProfile } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [form, setForm] = useState({
+    name: profile?.name ?? "",
+    birth_date: profile?.birth_date ?? "",
+    weight: profile?.weight?.toString() ?? "",
+    height: profile?.height?.toString() ?? "",
+  });
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile) return;
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Apenas imagens são permitidas (JPEG, PNG, WebP, GIF).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 5MB.");
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${profile.id}/avatar.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+      await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", profile.id);
+      await refreshProfile();
+      toast.success("Foto de perfil atualizada!");
+    } catch {
+      toast.error("Erro ao fazer upload da foto.");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profile) return;
+    setSaving(true);
+    try {
+      const updates: Record<string, unknown> = {
+        name: form.name.trim() || null,
+        birth_date: form.birth_date || null,
+        weight: form.weight ? parseFloat(form.weight) : null,
+        height: form.height ? parseFloat(form.height) : null,
+      };
+      const { error } = await supabase
+        .from("profiles")
+        .update(updates)
+        .eq("id", profile.id);
+      if (error) throw error;
+      await refreshProfile();
+      toast.success("Perfil atualizado com sucesso!");
+    } catch {
+      toast.error("Erro ao salvar perfil. Tente novamente.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <AppLayout>
+      <div className="max-w-lg mx-auto space-y-6 animate-fade-in">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Meu Perfil</h1>
+          <p className="text-muted-foreground mt-1">Gerencie suas informações pessoais</p>
+        </div>
+
+        {/* Avatar Card */}
+        <Card className="shadow-health border-border/50 overflow-hidden">
+          <div className="h-2 gradient-hero" />
+          <CardContent className="p-6 flex flex-col items-center gap-4">
+            <div className="relative group">
+              <div className="w-24 h-24 rounded-2xl gradient-hero flex items-center justify-center overflow-hidden shadow-health">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <User className="w-12 h-12 text-primary-foreground" />
+                )}
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute inset-0 rounded-2xl bg-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+              >
+                <Camera className="w-5 h-5 text-primary-foreground" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+            </div>
+            <div className="text-center">
+              <p className="font-medium text-foreground">{profile?.name || profile?.email}</p>
+              {profile?.name && <p className="text-sm text-muted-foreground">{profile.email}</p>}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingAvatar}
+              className="gap-2"
+            >
+              <Camera className="w-4 h-4" />
+              {uploadingAvatar ? "Enviando..." : "Alterar foto"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Form Card */}
+        <Card className="shadow-health border-border/50">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base">Dados pessoais</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSave} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nome</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Seu nome completo"
+                  maxLength={120}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="birth_date">Data de nascimento</Label>
+                <Input
+                  id="birth_date"
+                  type="date"
+                  value={form.birth_date}
+                  onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="weight">Peso inicial (kg)</Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    step="0.1"
+                    min="20"
+                    max="500"
+                    value={form.weight}
+                    onChange={(e) => setForm({ ...form, weight: e.target.value })}
+                    placeholder="70.0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="height">Altura (cm)</Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    step="0.1"
+                    min="50"
+                    max="300"
+                    value={form.height}
+                    onChange={(e) => setForm({ ...form, height: e.target.value })}
+                    placeholder="170"
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={saving}
+                className="w-full gradient-hero text-primary-foreground shadow-health hover:opacity-90 gap-2"
+              >
+                <Save className="w-4 h-4" />
+                {saving ? "Salvando..." : "Salvar alterações"}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    </AppLayout>
+  );
+}

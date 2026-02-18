@@ -1,6 +1,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Heart, LogOut, User, LayoutDashboard, Users } from "lucide-react";
+import { Heart, LogOut, User, LayoutDashboard, Users, UserCog } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +14,10 @@ export default function AppLayout({ children }: AppLayoutProps) {
 
   const navItems = profile?.role === "admin"
     ? [{ icon: Users, label: "Usuários", to: "/admin" }]
-    : [{ icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" }];
+    : [
+        { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
+        { icon: UserCog, label: "Perfil", to: "/perfil" },
+      ];
 
   return (
     <div className="min-h-screen flex bg-background">
@@ -60,7 +63,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
               )}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">{profile?.email}</p>
+              <p className="text-xs font-medium text-sidebar-foreground truncate">
+                {profile?.name || profile?.email}
+              </p>
+              {profile?.name && (
+                <p className="text-xs text-sidebar-foreground/50 truncate">{profile.email}</p>
+              )}
             </div>
           </div>
           <Button
