@@ -123,14 +123,17 @@ export function getMetricDelta(
   current: number | null | undefined,
   previous: number | null | undefined,
   isPositiveGood: boolean = true
-): { delta: number; isImprovement: boolean; formatted: string } | null {
+): { delta: number; isImprovement: boolean; isNeutral: boolean; formatted: string } | null {
   if (current == null || previous == null) return null;
   const delta = current - previous;
+  if (delta === 0) return null;
+  const isNeutral = false;
   const isImprovement = isPositiveGood ? delta > 0 : delta < 0;
   const sign = delta > 0 ? "+" : "";
   return {
     delta,
     isImprovement,
-    formatted: `${sign}${delta.toFixed(1)}`,
+    isNeutral,
+    formatted: `${sign}${delta.toFixed(2)}`,
   };
 }
