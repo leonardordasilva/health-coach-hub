@@ -5,7 +5,7 @@ import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Timer, Download } from "lucide-react";
+import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Timer } from "lucide-react";
 import BodyTypeIcon from "@/components/BodyTypeIcon";
 import { calculateAge, formatDate, getMetricDelta, calculateBMI, calculateBodyType, calculateBodyAge, formatMonthYear } from "@/lib/health";
 import HealthRecordForm from "@/components/HealthRecordForm";
@@ -185,36 +185,6 @@ export default function Dashboard() {
       .filter(d => d.value !== null);
   }, [records, selectedChartMetric]);
 
-  // CSV Export
-  const exportToCSV = () => {
-    if (filteredRecords.length === 0) {
-      toast.error("Nenhum registro para exportar neste período.");
-      return;
-    }
-    const header = ["Data", "Peso (kg)", "Gordura Corporal (%)", "Água (%)", "Músculo (kg)", "Proteína (%)", "Gordura Visceral", "Metabolismo Basal (kcal)", "Massa Óssea (kg)"];
-    const rows = [...filteredRecords]
-      .sort((a, b) => a.record_date.localeCompare(b.record_date))
-      .map(r => [
-        new Date(r.record_date + "T00:00:00").toLocaleDateString("pt-BR"),
-        r.weight,
-        r.body_fat ?? "",
-        r.water ?? "",
-        r.muscle ?? "",
-        r.protein ?? "",
-        r.visceral_fat ?? "",
-        r.basal_metabolism ?? "",
-        r.bone_mass ?? "",
-      ].join(";"));
-    const csv = [header.join(";"), ...rows].join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `saude_${selectedYear ?? "todos"}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("CSV exportado com sucesso!");
-  };
 
   const DeltaRow = ({ item, current, previous }: { item: DeltaItem; current: HealthRecord; previous: HealthRecord }) => {
     const delta = getMetricDelta(
@@ -435,15 +405,6 @@ export default function Dashboard() {
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h2 className="text-lg font-semibold text-foreground">Registros de Saúde</h2>
             <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={exportToCSV}
-                className="gap-2"
-              >
-                <Download className="w-4 h-4" />
-                Exportar CSV
-              </Button>
               <Button
                 onClick={() => { setEditingRecord(null); setShowForm(true); }}
                 className="gradient-hero text-primary-foreground shadow-health hover:opacity-90 gap-2"
