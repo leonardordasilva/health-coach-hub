@@ -53,12 +53,8 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
       const payload = record?.id ? { ...form, id: record.id } : form;
       const { error } = await supabase.functions.invoke("health-records-write", { body: payload });
       if (error) {
-        let isDuplicate = false;
-        try {
-          const body = await (error as { context?: Response }).context?.json();
-          isDuplicate = body?.error === "health_records_user_date_unique";
-        } catch { /* ignore parse errors */ }
-        if (isDuplicate) {
+        const status = (error as { context?: { status?: number } }).context?.status;
+        if (status === 409) {
           toast.error("Já existe um registro para esta data. Escolha outra data ou edite o registro existente.");
         } else {
           throw error;
