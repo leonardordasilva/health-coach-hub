@@ -5,7 +5,7 @@ import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Timer } from "lucide-react";
+import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Timer, ChevronDown } from "lucide-react";
 import BodyTypeIcon from "@/components/BodyTypeIcon";
 import { calculateAge, formatDate, getMetricDelta, calculateBMI, calculateBodyType, calculateBodyAge, formatMonthYear } from "@/lib/health";
 import HealthRecordForm from "@/components/HealthRecordForm";
@@ -64,6 +64,9 @@ export default function Dashboard() {
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [selectedChartMetric, setSelectedChartMetric] = useState<ChartMetric>(chartMetrics[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [analyticsOpen, setAnalyticsOpen] = useState(true);
+  const [chartOpen, setChartOpen] = useState(true);
+  const [recordsOpen, setRecordsOpen] = useState(true);
 
   const fetchRecords = async () => {
     try {
@@ -315,95 +318,117 @@ export default function Dashboard() {
         {/* Analytics Panel */}
         {records.length >= 2 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Painel Analítico</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* First vs Last */}
-              <Card className="shadow-health border-border/50">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    Evolução total
-                  </CardTitle>
-                  <p className="text-xs text-muted-foreground/70 mt-0.5">
-                    {formatMonthYear(first?.record_date)} → {formatMonthYear(last?.record_date)}
-                  </p>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {deltaItems.map((item) => (
-                    <DeltaRow key={item.field} item={item} current={last} previous={first} />
-                  ))}
-                </CardContent>
-              </Card>
-
-              {/* Second last vs last */}
-              {secondLast && (
+            <button
+              onClick={() => setAnalyticsOpen(o => !o)}
+              className="flex items-center gap-2 w-full text-left group"
+            >
+              <h2 className="text-lg font-semibold text-foreground">Painel Analítico</h2>
+              <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${analyticsOpen ? "" : "-rotate-90"}`} />
+            </button>
+            {analyticsOpen && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* First vs Last */}
                 <Card className="shadow-health border-border/50">
                   <CardHeader className="pb-3">
                     <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                      Período recente
+                      Evolução total
                     </CardTitle>
                     <p className="text-xs text-muted-foreground/70 mt-0.5">
-                      {formatMonthYear(secondLast?.record_date)} → {formatMonthYear(last?.record_date)}
+                      {formatMonthYear(first?.record_date)} → {formatMonthYear(last?.record_date)}
                     </p>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     {deltaItems.map((item) => (
-                      <DeltaRow key={item.field} item={item} current={last} previous={secondLast} />
+                      <DeltaRow key={item.field} item={item} current={last} previous={first} />
                     ))}
                   </CardContent>
                 </Card>
-              )}
-            </div>
+
+                {/* Second last vs last */}
+                {secondLast && (
+                  <Card className="shadow-health border-border/50">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                        Período recente
+                      </CardTitle>
+                      <p className="text-xs text-muted-foreground/70 mt-0.5">
+                        {formatMonthYear(secondLast?.record_date)} → {formatMonthYear(last?.record_date)}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {deltaItems.map((item) => (
+                        <DeltaRow key={item.field} item={item} current={last} previous={secondLast} />
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         {/* Evolution Chart */}
         {records.length >= 2 && (
           <div className="space-y-4">
-            <h2 className="text-lg font-semibold text-foreground">Evolução Temporal</h2>
-            <Card className="shadow-health border-border/50">
-              <CardHeader className="pb-2">
-                <div className="flex flex-wrap gap-2">
-                  {chartMetrics.map(m => (
-                    <button
-                      key={m.key as string}
-                      onClick={() => setSelectedChartMetric(m)}
-                      className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
-                        selectedChartMetric.key === m.key
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                    >
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </CardHeader>
-              <CardContent>
-                {chartData.length < 2 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">Dados insuficientes para exibir o gráfico desta métrica.</p>
-                ) : (
-                  <ResponsiveContainer width="100%" height={220}>
-                    <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                      <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} domain={["auto", "auto"]} />
-                      <Tooltip
-                        contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                        formatter={(value: number) => [`${value} ${selectedChartMetric.unit}`, selectedChartMetric.label]}
-                      />
-                      <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} activeDot={{ r: 6 }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                )}
-              </CardContent>
-            </Card>
+            <button
+              onClick={() => setChartOpen(o => !o)}
+              className="flex items-center gap-2 w-full text-left"
+            >
+              <h2 className="text-lg font-semibold text-foreground">Evolução Temporal</h2>
+              <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${chartOpen ? "" : "-rotate-90"}`} />
+            </button>
+            {chartOpen && (
+              <Card className="shadow-health border-border/50">
+                <CardHeader className="pb-2">
+                  <div className="flex flex-wrap gap-2">
+                    {chartMetrics.map(m => (
+                      <button
+                        key={m.key as string}
+                        onClick={() => setSelectedChartMetric(m)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                          selectedChartMetric.key === m.key
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        }`}
+                      >
+                        {m.label}
+                      </button>
+                    ))}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {chartData.length < 2 ? (
+                    <p className="text-sm text-muted-foreground text-center py-8">Dados insuficientes para exibir o gráfico desta métrica.</p>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                        <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                        <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} domain={["auto", "auto"]} />
+                        <Tooltip
+                          contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                          formatter={(value: number) => [`${value} ${selectedChartMetric.unit}`, selectedChartMetric.label]}
+                        />
+                        <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} activeDot={{ r: 6 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
         {/* Health Records */}
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
-            <h2 className="text-lg font-semibold text-foreground">Registros de Saúde</h2>
+            <button
+              onClick={() => setRecordsOpen(o => !o)}
+              className="flex items-center gap-2 text-left"
+            >
+              <h2 className="text-lg font-semibold text-foreground">Registros de Saúde</h2>
+              <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform duration-200 ${recordsOpen ? "" : "-rotate-90"}`} />
+            </button>
             <div className="flex items-center gap-2">
               <Button
                 onClick={() => { setEditingRecord(null); setShowForm(true); }}
@@ -416,62 +441,66 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Year selector */}
-          {availableYears.length > 0 && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                disabled={selectedYear === null || availableYears.indexOf(selectedYear) >= availableYears.length - 1}
-                onClick={() => {
-                  if (selectedYear === null) return;
-                  const idx = availableYears.indexOf(selectedYear);
-                  if (idx < availableYears.length - 1) setSelectedYear(availableYears[idx + 1]);
-                }}
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-
-              <div className="flex gap-1.5 flex-wrap">
-                {availableYears.map(year => (
-                  <button
-                    key={year}
-                    onClick={() => setSelectedYear(year)}
-                    className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
-                      selectedYear === year
-                        ? "bg-primary text-primary-foreground shadow-sm"
-                        : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    }`}
+          {recordsOpen && (
+            <>
+              {/* Year selector */}
+              {availableYears.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={selectedYear === null || availableYears.indexOf(selectedYear) >= availableYears.length - 1}
+                    onClick={() => {
+                      if (selectedYear === null) return;
+                      const idx = availableYears.indexOf(selectedYear);
+                      if (idx < availableYears.length - 1) setSelectedYear(availableYears[idx + 1]);
+                    }}
                   >
-                    {year}
-                  </button>
-                ))}
-              </div>
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                disabled={selectedYear === null || availableYears.indexOf(selectedYear) <= 0}
-                onClick={() => {
-                  if (selectedYear === null) return;
-                  const idx = availableYears.indexOf(selectedYear);
-                  if (idx > 0) setSelectedYear(availableYears[idx - 1]);
-                }}
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    {availableYears.map(year => (
+                      <button
+                        key={year}
+                        onClick={() => setSelectedYear(year)}
+                        className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                          selectedYear === year
+                            ? "bg-primary text-primary-foreground shadow-sm"
+                            : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        }`}
+                      >
+                        {year}
+                      </button>
+                    ))}
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={selectedYear === null || availableYears.indexOf(selectedYear) <= 0}
+                    onClick={() => {
+                      if (selectedYear === null) return;
+                      const idx = availableYears.indexOf(selectedYear);
+                      if (idx > 0) setSelectedYear(availableYears[idx - 1]);
+                    }}
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+
+              <HealthRecordsList
+                records={filteredRecords}
+                loading={loading}
+                onEdit={(r) => { setEditingRecord(r); setShowForm(true); }}
+                onDetail={(r) => setDetailRecord(r)}
+                onDelete={fetchRecords}
+              />
+            </>
           )}
-
-          <HealthRecordsList
-            records={filteredRecords}
-            loading={loading}
-            onEdit={(r) => { setEditingRecord(r); setShowForm(true); }}
-            onDetail={(r) => setDetailRecord(r)}
-            onDelete={fetchRecords}
-          />
         </div>
       </div>
 
