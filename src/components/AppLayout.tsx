@@ -50,6 +50,9 @@ export default function AppLayout({ children }: AppLayoutProps) {
               {item.label}
             </Link>
           ))}
+        </nav>
+
+        <div className="p-4 border-t border-sidebar-border">
           <button
             onClick={signOut}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 w-full text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
@@ -57,7 +60,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <LogOut className="w-4 h-4 flex-shrink-0" />
             Sair
           </button>
-        </nav>
+        </div>
       </aside>
 
       {/* Mobile header */}
