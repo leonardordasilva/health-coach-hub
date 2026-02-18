@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,22 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, profile } = useAuth();
+  const { signIn, user, profile, loading: authLoading, profileLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Redirect if already authenticated (covers post-login and page refresh)
+  useEffect(() => {
+    if (authLoading || profileLoading) return;
+    if (!user || !profile) return;
+
+    if (profile.is_default_password) {
+      navigate("/trocar-senha", { replace: true });
+    } else if (profile.role === "admin") {
+      navigate("/admin", { replace: true });
+    } else {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [authLoading, profileLoading, user, profile, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,10 +38,8 @@ export default function Login() {
 
     if (error) {
       toast.error("E-mail ou senha inválidos. Tente novamente.");
-      return;
     }
-
-    // Navigation happens via AuthContext update + redirect in App
+    // Navigation is handled by the useEffect above once profile loads
   };
 
   return (
