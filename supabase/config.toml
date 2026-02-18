@@ -14,3 +14,6 @@ verify_jwt = false
 
 [functions.health-records-read]
 verify_jwt = false
+
+[functions.health-assessment]
+verify_jwt = false
