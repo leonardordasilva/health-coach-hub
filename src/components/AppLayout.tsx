@@ -21,7 +21,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Sidebar */}
-      <aside className="w-64 hidden md:flex flex-col gradient-sidebar shadow-lg">
+      <aside className="w-64 hidden md:flex flex-col gradient-sidebar shadow-lg sticky top-0 h-screen">
         <div className="p-6 border-b border-sidebar-border">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl gradient-hero flex items-center justify-center shadow-glow">
