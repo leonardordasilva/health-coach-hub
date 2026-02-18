@@ -92,8 +92,8 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
   const [expanded, setExpanded] = useState(false);
   const [assessmentType, setAssessmentType] = useState<AssessmentType | null>(null);
   const [generatedType, setGeneratedType] = useState<AssessmentType | null>(null);
-  // Snapshot of data used when the last assessment was generated
-  const [dataSnapshot, setDataSnapshot] = useState<string | null>(null);
+  // Snapshots por tipo — mantidos independentemente para bloquear regeneração sem mudança
+  const [snapshots, setSnapshots] = useState<Partial<Record<AssessmentType, string>>>({});
 
   const buildRecordPayload = (r: HealthRecord) => {
     const height = profile.height;
@@ -112,14 +112,13 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
     return { ...r, bmi, bmiClassification, bodyAge, bodyType };
   };
 
-  // Whether the current data differs from what was used to generate the assessment
+  // Se já existe snapshot para o tipo atual, verifica se os dados mudaram
   const hasDataChanged = (() => {
-    if (!dataSnapshot || !generatedType) return false;
-    const current =
-      generatedType === "latest"
-        ? snapshotLatest(record)
-        : snapshotGeneral(allRecords);
-    return current !== dataSnapshot;
+    if (!generatedType) return false;
+    const saved = snapshots[generatedType];
+    if (!saved) return false;
+    const current = generatedType === "latest" ? snapshotLatest(record) : snapshotGeneral(allRecords);
+    return current !== saved;
   })();
 
   const handleGenerate = async (type: AssessmentType) => {
@@ -156,10 +155,9 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
       if (!res.ok) throw new Error(json.error || "Erro desconhecido");
       setAssessment(json.assessment);
       setGeneratedType(type);
-      // Save snapshot of data used in this generation
-      setDataSnapshot(
-        type === "latest" ? snapshotLatest(record) : snapshotGeneral(allRecords)
-      );
+      // Salva snapshot por tipo — sem zerar ao trocar de tipo
+      const snap = type === "latest" ? snapshotLatest(record) : snapshotGeneral(allRecords);
+      setSnapshots(prev => ({ ...prev, [type]: snap }));
       setExpanded(true);
     } catch (err) {
       console.error("Assessment error:", err);
@@ -278,7 +276,7 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
       {/* Footer actions */}
       <div className="flex items-center justify-between pt-1">
         <button
-          onClick={() => { setAssessment(null); setAssessmentType(null); setGeneratedType(null); setDataSnapshot(null); setExpanded(false); }}
+          onClick={() => { setAssessment(null); setAssessmentType(null); setGeneratedType(null); setExpanded(false); }}
           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           ← Trocar tipo
