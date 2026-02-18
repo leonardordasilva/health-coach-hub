@@ -2,6 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { calculateBMI, calculateBodyType, calculateAge, formatMonthYear } from "@/lib/health";
 import { Activity, Droplets, Flame, Heart, Scale, Dumbbell, Bone, Percent, Target } from "lucide-react";
+import BodyTypeIcon from "@/components/BodyTypeIcon";
 
 interface HealthRecord {
   id: string;
@@ -109,9 +110,16 @@ export default function HealthRecordDetail({ record, profile, onClose }: Props) 
               {/* Body Type */}
               {bodyType && (
                 <div className="p-3.5 rounded-xl border bg-card">
-                  <p className="text-xs text-muted-foreground mb-1">Tipo de Corpo</p>
-                  <p className="text-lg font-bold text-foreground">{bodyType.type}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{bodyType.description}</p>
+                  <p className="text-xs text-muted-foreground mb-2">Tipo de Corpo</p>
+                  <div className="flex items-center gap-4">
+                    <div className="h-14 flex items-center justify-center px-2 bg-primary/8 border border-primary/20 rounded-xl">
+                      <BodyTypeIcon bodyType={bodyType.type} color="hsl(var(--primary))" width={28} height={46} />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-foreground">{bodyType.type}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{bodyType.description}</p>
+                    </div>
+                  </div>
                 </div>
               )}
 
