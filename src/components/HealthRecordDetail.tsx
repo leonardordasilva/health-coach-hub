@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { calculateBMI, calculateBodyType, calculateBodyAge, calculateAge, formatMonthYear } from "@/lib/health";
-import { Activity, Droplets, Flame, Heart, Scale, Dumbbell, Bone, Percent, Target, Timer } from "lucide-react";
+import { Activity, Droplets, Flame, Heart, Scale, Dumbbell, Bone, Percent, Target, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import BodyTypeIcon from "@/components/BodyTypeIcon";
 
 interface HealthRecord {
@@ -126,17 +126,57 @@ export default function HealthRecordDetail({ record, profile, onClose }: Props) 
                     </div>
                   </div>
                 )}
-                {bodyAge !== null && (
-                  <div className="flex items-center gap-3 p-3.5 rounded-xl border bg-card">
-                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                      <Timer className="w-4 h-4 text-accent-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground">Idade Corporal</p>
-                      <p className="text-lg font-bold text-foreground">{bodyAge} anos</p>
-                    </div>
-                  </div>
-                )}
+                {bodyAge !== null && age > 0 && (
+                  () => {
+                    const diff = bodyAge - age;
+                    const isYounger = diff < 0;
+                    const isEqual = diff === 0;
+                    const absDiff = Math.abs(diff);
+                    const colorClass = isEqual
+                      ? "text-muted-foreground"
+                      : isYounger
+                      ? "text-success"
+                      : "text-destructive";
+                    const bgClass = isEqual
+                      ? "bg-muted/50 border-border/40"
+                      : isYounger
+                      ? "bg-success/8 border-success/25"
+                      : "bg-destructive/8 border-destructive/25";
+                    const Icon = isEqual ? Minus : isYounger ? TrendingDown : TrendingUp;
+                    const label = isEqual
+                      ? "na média"
+                      : isYounger
+                      ? `${absDiff} ano${absDiff !== 1 ? "s" : ""} mais jovem`
+                      : `${absDiff} ano${absDiff !== 1 ? "s" : ""} mais velho`;
+
+                    return (
+                      <div className={`p-3.5 rounded-xl border ${bgClass}`}>
+                        <p className="text-xs text-muted-foreground mb-2">Idade Corporal vs. Real</p>
+                        <div className="flex items-center justify-between">
+                          {/* Real age */}
+                          <div className="text-center">
+                            <p className="text-xs text-muted-foreground">Idade real</p>
+                            <p className="text-2xl font-bold text-foreground">{age}</p>
+                            <p className="text-xs text-muted-foreground">anos</p>
+                          </div>
+
+                          {/* Visual indicator */}
+                          <div className={`flex flex-col items-center gap-1 ${colorClass}`}>
+                            <Icon className="w-5 h-5" />
+                            <span className="text-xs font-semibold text-center leading-tight max-w-[80px]">{label}</span>
+                          </div>
+
+                          {/* Body age */}
+                          <div className="text-center">
+                            <p className="text-xs text-muted-foreground">Idade corporal</p>
+                            <p className={`text-2xl font-bold ${colorClass}`}>{bodyAge}</p>
+                            <p className="text-xs text-muted-foreground">anos</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                )()}
               </div>
 
               {!bodyType && (
