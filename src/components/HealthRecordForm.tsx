@@ -1,12 +1,17 @@
 import { useState } from "react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { DecimalInput } from "@/components/ui/decimal-input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { HealthRecordInput } from "@/types/health";
 
 interface Props {
@@ -18,8 +23,9 @@ interface Props {
 export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [form, setForm] = useState<Omit<HealthRecordInput, "id">>({
-    record_date: record?.record_date || new Date().toISOString().slice(0, 7) + "-01",
+    record_date: record?.record_date || new Date().toISOString().slice(0, 10),
     weight: record?.weight || 0,
     body_fat: record?.body_fat || null,
     water: record?.water || null,
@@ -68,7 +74,7 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
     { key: "bone_mass", label: "Massa Óssea", unit: "kg" },
   ];
 
-  const monthValue = typeof form.record_date === "string" ? form.record_date.slice(0, 7) : "";
+  const selectedDate = form.record_date ? new Date(form.record_date + "T00:00:00") : undefined;
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -84,17 +90,40 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="record_date">Data do Registro (Mês/Ano) *</Label>
-            <input
-              id="record_date"
-              type="month"
-              value={monthValue}
-              onChange={(e) =>
-                setForm((p) => ({ ...p, record_date: e.target.value ? e.target.value + "-01" : "" }))
-              }
-              required
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            />
+            <Label>Data do Registro *</Label>
+            <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal h-10",
+                    !selectedDate && "text-muted-foreground"
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {selectedDate
+                    ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR })
+                    : "Selecione uma data"}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={(date) => {
+                    if (date) {
+                      setForm((p) => ({ ...p, record_date: format(date, "yyyy-MM-dd") }));
+                    }
+                    setCalendarOpen(false);
+                  }}
+                  disabled={(date) => date > new Date()}
+                  initialFocus
+                  locale={ptBR}
+                  className="p-3 pointer-events-auto"
+                />
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="grid grid-cols-2 gap-3">
             {fields.map((f) => (
