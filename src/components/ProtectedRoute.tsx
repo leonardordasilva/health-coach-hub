@@ -6,29 +6,36 @@ interface ProtectedRouteProps {
   requiredRole?: "admin" | "user";
 }
 
+const Spinner = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="flex flex-col items-center gap-3">
+      <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+      <p className="text-muted-foreground text-sm">Carregando...</p>
+    </div>
+  </div>
+);
+
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { user, profile, loading } = useAuth();
+  const { user, profile, loading, profileLoading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-          <p className="text-muted-foreground text-sm">Carregando...</p>
-        </div>
-      </div>
-    );
-  }
+  // Wait for auth session to resolve
+  if (loading) return <Spinner />;
 
+  // No session → redirect to login
   if (!user) return <Navigate to="/login" replace />;
 
+  // Session exists but profile still loading
+  if (profileLoading && !profile) return <Spinner />;
+
+  // Force password change if default
+  if (profile?.is_default_password && window.location.pathname !== "/trocar-senha") {
+    return <Navigate to="/trocar-senha" replace />;
+  }
+
+  // Role check
   if (requiredRole && profile?.role !== requiredRole) {
     if (profile?.role === "admin") return <Navigate to="/admin" replace />;
     return <Navigate to="/dashboard" replace />;
-  }
-
-  if (profile?.is_default_password && window.location.pathname !== "/trocar-senha") {
-    return <Navigate to="/trocar-senha" replace />;
   }
 
   return <>{children}</>;

@@ -19,6 +19,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   loading: boolean;
+  profileLoading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -30,62 +31,91 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);       // auth session loading
+  const [profileLoading, setProfileLoading] = useState(false); // profile data loading
 
   const fetchProfile = async (userId: string): Promise<void> => {
+    setProfileLoading(true);
     try {
-      const [{ data: profileData }, { data: roleData }] = await Promise.all([
-        supabase.from("profiles").select("*").eq("id", userId).single(),
-        supabase.from("user_roles").select("role").eq("user_id", userId).single(),
-      ]);
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
 
-      if (profileData) {
+      const { data: roleData } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .single();
+
+      if (!profileError && profileData) {
         setProfile({
           ...profileData,
           role: (roleData?.role as "admin" | "user") || "user",
         });
+      } else {
+        console.warn("Profile fetch error:", profileError);
+        setProfile(null);
       }
-    } catch {
+    } catch (err) {
+      console.error("fetchProfile exception:", err);
       setProfile(null);
+    } finally {
+      setProfileLoading(false);
     }
   };
 
   useEffect(() => {
     let isMounted = true;
 
-    // Listener for ONGOING auth changes — does NOT control loading
+    // Safety timeout — never stay stuck loading forever
+    const safetyTimeout = setTimeout(() => {
+      if (isMounted) {
+        console.warn("Auth loading timeout reached — forcing loading=false");
+        setLoading(false);
+        setProfileLoading(false);
+      }
+    }, 8000);
+
+    // Ongoing auth state changes (does NOT control loading)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
         if (!isMounted) return;
         setSession(session);
         setUser(session?.user ?? null);
 
-        // Use setTimeout to avoid deadlock inside onAuthStateChange
         if (session?.user) {
+          // Deferred to avoid deadlock inside onAuthStateChange
           setTimeout(() => {
             if (isMounted) fetchProfile(session.user.id);
           }, 0);
         } else {
           setProfile(null);
+          setProfileLoading(false);
         }
       }
     );
 
-    // INITIAL load — controls isLoading, waits for everything before resolving
+    // Initial load — resolves as soon as session is known (NOT waiting for profile)
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error } = await supabase.auth.getSession();
         if (!isMounted) return;
+
+        if (error) console.error("getSession error:", error);
 
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          await fetchProfile(session.user.id);
+          // Start profile fetch but do NOT await — loading resolves immediately
+          fetchProfile(session.user.id);
         }
       } catch (err) {
-        console.error("Auth init error:", err);
+        console.error("initializeAuth error:", err);
       } finally {
+        clearTimeout(safetyTimeout);
         if (isMounted) setLoading(false);
       }
     };
@@ -94,6 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       isMounted = false;
+      clearTimeout(safetyTimeout);
       subscription.unsubscribe();
     };
   }, []);
@@ -113,7 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, profileLoading, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

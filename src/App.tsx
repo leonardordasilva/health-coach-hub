@@ -14,25 +14,40 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
-function AuthRedirect() {
-  const { user, profile, loading } = useAuth();
-  if (loading) return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
+const Spinner = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <div className="flex flex-col items-center gap-3">
       <div className="h-10 w-10 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+      <p className="text-sm text-muted-foreground">Carregando...</p>
     </div>
-  );
+  </div>
+);
+
+function AuthRedirect() {
+  const { user, profile, loading, profileLoading } = useAuth();
+
+  // Wait for auth session
+  if (loading) return <Spinner />;
+
+  // No user → go to login
   if (!user) return <Navigate to="/login" replace />;
+
+  // User is known but profile still loading → keep spinner briefly
+  if (profileLoading && !profile) return <Spinner />;
+
+  // Profile loaded — redirect based on role
   if (profile?.is_default_password) return <Navigate to="/trocar-senha" replace />;
   if (profile?.role === "admin") return <Navigate to="/admin" replace />;
+
+  // Default: go to dashboard (also covers case where profile is null after load)
   return <Navigate to="/dashboard" replace />;
 }
 
 function AppRoutes() {
-  const { user } = useAuth();
   return (
     <Routes>
       <Route path="/" element={<AuthRedirect />} />
-      <Route path="/login" element={user ? <AuthRedirect /> : <Login />} />
+      <Route path="/login" element={<Login />} />
       <Route path="/esqueci-senha" element={<ForgotPassword />} />
       <Route
         path="/trocar-senha"
