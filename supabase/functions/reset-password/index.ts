@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "npm:zod@3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -68,7 +69,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, userId } = await req.json();
+    const ResetPasswordSchema = z.object({
+      email: z.string().email().max(255).optional(),
+      userId: z.string().uuid().optional(),
+    });
+
+    let validated: z.infer<typeof ResetPasswordSchema>;
+    try {
+      const body = await req.json();
+      validated = ResetPasswordSchema.parse(body);
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid request data." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { email, userId } = validated;
 
     // Find user by email if userId not provided
     let targetEmail = email;
