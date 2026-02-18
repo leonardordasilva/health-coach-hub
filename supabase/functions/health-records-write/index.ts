@@ -104,8 +104,8 @@ Deno.serve(async (req) => {
     });
   } catch (err: unknown) {
     console.error("health-records-write error:", err);
-    const msg = err instanceof Error ? err.message : String(err);
-    const isDuplicate = msg.includes("health_records_user_date_unique") || msg.includes("unique") || msg.includes("duplicate");
+    const code = (err as { code?: string })?.code;
+    const isDuplicate = code === "23505";
     return new Response(
       JSON.stringify({ error: isDuplicate ? "health_records_user_date_unique" : "An error occurred. Please try again." }),
       {
