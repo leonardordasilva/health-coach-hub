@@ -139,6 +139,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           birth_date: string | null
+          body_fat_goal: number | null
           created_at: string
           email: string
           gender: string | null
@@ -147,10 +148,12 @@ export type Database = {
           is_default_password: boolean
           name: string | null
           weight: number | null
+          weight_goal: number | null
         }
         Insert: {
           avatar_url?: string | null
           birth_date?: string | null
+          body_fat_goal?: number | null
           created_at?: string
           email: string
           gender?: string | null
@@ -159,10 +162,12 @@ export type Database = {
           is_default_password?: boolean
           name?: string | null
           weight?: number | null
+          weight_goal?: number | null
         }
         Update: {
           avatar_url?: string | null
           birth_date?: string | null
+          body_fat_goal?: number | null
           created_at?: string
           email?: string
           gender?: string | null
@@ -171,6 +176,7 @@ export type Database = {
           is_default_password?: boolean
           name?: string | null
           weight?: number | null
+          weight_goal?: number | null
         }
         Relationships: []
       }

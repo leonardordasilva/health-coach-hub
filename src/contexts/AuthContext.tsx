@@ -14,6 +14,8 @@ interface Profile {
   is_default_password: boolean;
   avatar_url: string | null;
   created_at: string;
+  weight_goal: number | null;
+  body_fat_goal: number | null;
 }
 
 interface AuthContextType {
