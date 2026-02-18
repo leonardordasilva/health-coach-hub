@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { User, Camera, Save, AlertTriangle, Target } from "lucide-react";
@@ -158,13 +159,13 @@ export default function Profile() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="weight">Peso inicial (kg)</Label>
-                  <Input id="weight" type="number" step="0.1" min="20" max="500" value={form.weight}
-                    onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="Ex: 70,5" />
+                  <DecimalInput id="weight" value={form.weight} decimals={1} min={20} max={500}
+                    onChange={(v) => setForm({ ...form, weight: v })} placeholder="Ex: 70,5" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="height">Altura (cm)</Label>
-                  <Input id="height" type="number" step="0.1" min="50" max="300" value={form.height}
-                    onChange={(e) => setForm({ ...form, height: e.target.value })} placeholder="Ex: 170" />
+                  <DecimalInput id="height" value={form.height} decimals={1} min={50} max={300}
+                    onChange={(v) => setForm({ ...form, height: v })} placeholder="Ex: 170" />
                 </div>
               </div>
 
@@ -200,19 +201,19 @@ export default function Profile() {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="weight_goal">Meta de peso (kg)</Label>
-                    <Input
-                      id="weight_goal" type="number" step="0.1" min="20" max="500"
+                    <DecimalInput
+                      id="weight_goal" decimals={1} min={20} max={500}
                       value={form.weight_goal}
-                      onChange={(e) => setForm({ ...form, weight_goal: e.target.value })}
+                      onChange={(v) => setForm({ ...form, weight_goal: v })}
                       placeholder="Ex: 65,0"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="body_fat_goal">Meta de gordura (%)</Label>
-                    <Input
-                      id="body_fat_goal" type="number" step="0.1" min="1" max="70"
+                    <DecimalInput
+                      id="body_fat_goal" decimals={1} min={1} max={70}
                       value={form.body_fat_goal}
-                      onChange={(e) => setForm({ ...form, body_fat_goal: e.target.value })}
+                      onChange={(v) => setForm({ ...form, body_fat_goal: v })}
                       placeholder="Ex: 20,0"
                     />
                   </div>
