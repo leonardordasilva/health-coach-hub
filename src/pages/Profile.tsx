@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { User, Camera, Save } from "lucide-react";
+import { User, Camera, Save, AlertTriangle } from "lucide-react";
 
 export default function Profile() {
-  const { profile, refreshProfile } = useAuth();
+  const { profile, refreshProfile, isProfileComplete } = useAuth();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -21,6 +23,18 @@ export default function Profile() {
     weight: profile?.weight?.toString() ?? "",
     height: profile?.height?.toString() ?? "",
   });
+
+  // Sync form when profile changes (e.g. after refreshProfile)
+  useEffect(() => {
+    if (profile) {
+      setForm({
+        name: profile.name ?? "",
+        birth_date: profile.birth_date ?? "",
+        weight: profile.weight?.toString() ?? "",
+        height: profile.height?.toString() ?? "",
+      });
+    }
+  }, [profile]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -59,6 +73,9 @@ export default function Profile() {
     e.preventDefault();
     if (!profile) return;
     setSaving(true);
+
+    const wasIncomplete = !isProfileComplete;
+
     try {
       const updates: Record<string, unknown> = {
         name: form.name.trim() || null,
@@ -73,6 +90,11 @@ export default function Profile() {
       if (error) throw error;
       await refreshProfile();
       toast.success("Perfil atualizado com sucesso!");
+
+      // Redirect to dashboard if profile was previously incomplete
+      if (wasIncomplete && updates.name && updates.birth_date) {
+        navigate("/dashboard");
+      }
     } catch {
       toast.error("Erro ao salvar perfil. Tente novamente.");
     } finally {
@@ -87,6 +109,17 @@ export default function Profile() {
           <h1 className="text-2xl md:text-3xl font-bold text-foreground">Meu Perfil</h1>
           <p className="text-muted-foreground mt-1">Gerencie suas informações pessoais</p>
         </div>
+
+        {/* Incomplete profile banner */}
+        {!isProfileComplete && (
+          <div className="flex items-start gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3">
+            <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-warning">Complete seu cadastro</p>
+              <p className="text-sm text-muted-foreground mt-0.5">Preencha seu nome e data de nascimento para começar a usar o sistema.</p>
+            </div>
+          </div>
+        )}
 
         {/* Avatar Card */}
         <Card className="shadow-health border-border/50 overflow-hidden">
@@ -103,7 +136,7 @@ export default function Profile() {
               <button
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadingAvatar}
-                className="absolute inset-0 rounded-2xl bg-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                className="absolute inset-0 rounded-2xl bg-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:flex items-center justify-center"
               >
                 <Camera className="w-5 h-5 text-primary-foreground" />
               </button>
@@ -124,7 +157,7 @@ export default function Profile() {
               size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingAvatar}
-              className="gap-2"
+              className="gap-2 sm:hidden"
             >
               <Camera className="w-4 h-4" />
               {uploadingAvatar ? "Enviando..." : "Alterar foto"}
@@ -140,7 +173,9 @@ export default function Profile() {
           <CardContent>
             <form onSubmit={handleSave} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Nome</Label>
+                <Label htmlFor="name">
+                  Nome <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="name"
                   type="text"
@@ -148,16 +183,20 @@ export default function Profile() {
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="Seu nome completo"
                   maxLength={120}
+                  required={!isProfileComplete}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="birth_date">Data de nascimento</Label>
+                <Label htmlFor="birth_date">
+                  Data de nascimento <span className="text-destructive">*</span>
+                </Label>
                 <Input
                   id="birth_date"
                   type="date"
                   value={form.birth_date}
                   onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
+                  required={!isProfileComplete}
                 />
               </div>
 
@@ -196,7 +235,7 @@ export default function Profile() {
                 className="w-full gradient-hero text-primary-foreground shadow-health hover:opacity-90 gap-2"
               >
                 <Save className="w-4 h-4" />
-                {saving ? "Salvando..." : "Salvar alterações"}
+                {saving ? "Salvando..." : isProfileComplete ? "Salvar alterações" : "Concluir cadastro"}
               </Button>
             </form>
           </CardContent>

@@ -36,10 +36,6 @@ export default function AdminPanel() {
 
   const [form, setForm] = useState({
     email: "",
-    name: "",
-    birth_date: "",
-    weight: "",
-    height: "",
   });
 
   const fetchUsers = async () => {
@@ -75,20 +71,13 @@ export default function AdminPanel() {
     setCreating(true);
     const password = generatePassword();
     try {
-      const { data, error } = await supabase.functions.invoke("create-user", {
-        body: {
-          email: form.email,
-          name: form.name || null,
-          password,
-          birth_date: form.birth_date || null,
-          weight: form.weight ? parseFloat(form.weight) : null,
-          height: form.height ? parseFloat(form.height) : null,
-        },
+      const { error } = await supabase.functions.invoke("create-user", {
+        body: { email: form.email, password },
       });
       if (error) throw error;
       toast.success(`Usuário criado! Senha enviada para ${form.email}`);
       setShowCreateModal(false);
-      setForm({ email: "", name: "", birth_date: "", weight: "", height: "" });
+      setForm({ email: "" });
       fetchUsers();
     } catch (err: unknown) {
       console.error("Create user error:", err);
@@ -281,7 +270,7 @@ export default function AdminPanel() {
               Novo usuário
             </DialogTitle>
             <DialogDescription>
-              Uma senha temporária será gerada e enviada por e-mail.
+              Uma senha temporária será gerada e enviada por e-mail. O usuário preencherá os demais dados no primeiro acesso.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
@@ -295,52 +284,6 @@ export default function AdminPanel() {
                 required
                 placeholder="usuario@email.com"
               />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-name">Nome</Label>
-              <Input
-                id="new-name"
-                type="text"
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Nome completo"
-                maxLength={120}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-birth">Data de nascimento</Label>
-              <Input
-                id="new-birth"
-                type="date"
-                value={form.birth_date}
-                onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="new-weight">Peso (kg)</Label>
-                <Input
-                  id="new-weight"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  value={form.weight}
-                  onChange={(e) => setForm({ ...form, weight: e.target.value })}
-                  placeholder="70.0"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="new-height">Altura (cm)</Label>
-                <Input
-                  id="new-height"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  value={form.height}
-                  onChange={(e) => setForm({ ...form, height: e.target.value })}
-                  placeholder="170"
-                />
-              </div>
             </div>
             <DialogFooter className="gap-2 mt-2">
               <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>

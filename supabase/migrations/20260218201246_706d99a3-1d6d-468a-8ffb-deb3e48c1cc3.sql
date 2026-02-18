@@ -1,0 +1,1 @@
+COMMENT ON TABLE public.health_records IS 'Dados de saúde do usuário. Acesso restrito ao próprio usuário via RLS. Administradores não têm acesso a estes dados por política de privacidade.';

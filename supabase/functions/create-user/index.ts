@@ -69,11 +69,7 @@ Deno.serve(async (req) => {
 
     const CreateUserSchema = z.object({
       email: z.string().email().max(255),
-      name: z.string().max(120).optional().nullable(),
       password: z.string().min(8).max(100).optional(),
-      birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
-      weight: z.number().min(20).max(500).optional().nullable(),
-      height: z.number().min(50).max(300).optional().nullable(),
     });
 
     let validated: z.infer<typeof CreateUserSchema>;
@@ -86,7 +82,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, name, password, birth_date, weight, height } = validated;
+    const { email, password } = validated;
     const tempPassword = password || generatePassword();
 
     // Create user in Auth
@@ -99,14 +95,8 @@ Deno.serve(async (req) => {
 
     const userId = newUser.user.id;
 
-    // Update profile with additional data
-    const updates: Record<string, unknown> = { is_default_password: true };
-    if (name) updates.name = name;
-    if (birth_date) updates.birth_date = birth_date;
-    if (weight) updates.weight = weight;
-    if (height) updates.height = height;
-
-    await supabaseAdmin.from("profiles").update(updates).eq("id", userId);
+    // Mark as default password (profile row is created by trigger)
+    await supabaseAdmin.from("profiles").update({ is_default_password: true }).eq("id", userId);
 
     // Insert user role
     await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "user" });
@@ -132,7 +122,7 @@ Deno.serve(async (req) => {
                 <p style="margin: 4px 0;"><strong>E-mail:</strong> ${email}</p>
                 <p style="margin: 4px 0;"><strong>Senha temporária:</strong> <code style="font-weight: bold; color: #15803d;">${tempPassword}</code></p>
               </div>
-              <p style="color: #666; font-size: 14px;">Você será solicitado a trocar esta senha no primeiro acesso.</p>
+              <p style="color: #666; font-size: 14px;">Você será solicitado a trocar esta senha e completar seu cadastro no primeiro acesso.</p>
             </div>
           `,
         }),
