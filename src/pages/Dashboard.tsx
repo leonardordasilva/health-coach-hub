@@ -5,7 +5,8 @@ import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Activity, Timer } from "lucide-react";
+import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Timer } from "lucide-react";
+import BodyTypeIcon from "@/components/BodyTypeIcon";
 import { calculateAge, formatDate, getMetricDelta, calculateBMI, calculateBodyType, calculateBodyAge } from "@/lib/health";
 import HealthRecordForm from "@/components/HealthRecordForm";
 import HealthRecordDetail from "@/components/HealthRecordDetail";
@@ -221,8 +222,8 @@ export default function Dashboard() {
                 {bodyMetrics && (
                   <div className="flex flex-row sm:flex-col justify-center gap-3 sm:min-w-[160px]">
                     <div className="flex items-center gap-3 bg-primary/8 border border-primary/20 rounded-xl px-4 py-3 flex-1 sm:flex-none">
-                      <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
-                        <Activity className="w-4.5 h-4.5 text-primary" />
+                      <div className="h-12 flex items-center justify-center flex-shrink-0 px-1">
+                        <BodyTypeIcon bodyType={bodyMetrics.bodyType.type} color="hsl(var(--primary))" width={26} height={42} />
                       </div>
                       <div className="text-left">
                         <p className="text-xs text-muted-foreground leading-tight">Tipo de Corpo</p>
