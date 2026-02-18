@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      health_assessment_cache: {
+        Row: {
+          assessment: Json
+          assessment_type: string
+          created_at: string
+          data_snapshot: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          assessment: Json
+          assessment_type: string
+          created_at?: string
+          data_snapshot: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          assessment?: Json
+          assessment_type?: string
+          created_at?: string
+          data_snapshot?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_assessment_cache_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       health_records: {
         Row: {
           basal_metabolism: number | null
