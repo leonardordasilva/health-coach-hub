@@ -48,42 +48,27 @@ Deno.serve(async (req) => {
         Deno.env.get("SUPABASE_ANON_KEY")!,
         { global: { headers: { Authorization: authHeader } } }
       );
-
       const token = authHeader.replace("Bearer ", "");
       const { data: claimsData } = await supabaseUser.auth.getClaims(token);
       if (claimsData?.claims) {
         const requesterId = claimsData.claims.sub;
         const { data: roleRow } = await supabaseAdmin
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", requesterId)
-          .single();
+          .from("user_roles").select("role").eq("user_id", requesterId).single();
         isAdminCall = roleRow?.role === "admin";
       }
     }
 
     const { email, userId } = validated;
-
-    // Find user
     let targetEmail = email;
     let targetUserId = userId;
 
     if (!targetUserId && email) {
       const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("id, email")
-        .eq("email", email)
-        .single();
-      if (profile) {
-        targetUserId = profile.id;
-        targetEmail = profile.email;
-      }
+        .from("profiles").select("id, email").eq("email", email).single();
+      if (profile) { targetUserId = profile.id; targetEmail = profile.email; }
     } else if (targetUserId && !targetEmail) {
       const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("email")
-        .eq("id", targetUserId)
-        .single();
+        .from("profiles").select("email").eq("id", targetUserId).single();
       if (profile) targetEmail = profile.email;
     }
 
@@ -94,12 +79,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    const appUrl = Deno.env.get("APP_URL") || "https://id-preview--9aba2c63-1002-4782-a134-e620c452e4ca.lovable.app";
+    // APP_URL must be configured as a secret — no hardcoded fallback
+    const appUrl = Deno.env.get("APP_URL");
+    if (!appUrl) {
+      console.error("APP_URL secret is not configured.");
+      return new Response(JSON.stringify({ error: "Configuração do servidor incompleta." }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const resendKey = Deno.env.get("RESEND_API_KEY");
 
-    if (isAdminCall) {
-      // Admin reset: also send link (same flow, just no auth check required for link)
-    }
+    console.log(`reset-password: isAdminCall=${isAdminCall}, targetUserId=${targetUserId}`);
 
     // Generate a secure token valid for 1 hour
     const token = await generateSecureToken();
@@ -121,14 +112,10 @@ Deno.serve(async (req) => {
 
     const confirmUrl = `${appUrl}/confirmar-reset?token=${token}`;
 
-    // Send email with confirmation link
     if (resendKey && targetEmail) {
       await fetch("https://api.resend.com/emails", {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${resendKey}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           from: "Health Coach <onboarding@resend.dev>",
           to: [targetEmail],
@@ -158,8 +145,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     console.error("reset-password error:", err);
     return new Response(JSON.stringify({ error: "Erro interno." }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

@@ -6,20 +6,8 @@ import { toast } from "sonner";
 import { ClipboardList, Pencil, Trash2, Eye, Calendar } from "lucide-react";
 import { formatMonthYear } from "@/lib/health";
 import { useState } from "react";
-
-interface HealthRecord {
-  id: string;
-  record_date: string;
-  weight: number;
-  body_fat: number | null;
-  water: number | null;
-  basal_metabolism: number | null;
-  visceral_fat: number | null;
-  muscle: number | null;
-  protein: number | null;
-  bone_mass: number | null;
-  created_at: string;
-}
+import { motion, AnimatePresence } from "framer-motion";
+import type { HealthRecord } from "@/types/health";
 
 interface Props {
   records: HealthRecord[];
@@ -34,7 +22,6 @@ export default function HealthRecordsList({ records, loading, onEdit, onDetail, 
 
   const handleDelete = async () => {
     if (!deleteId) return;
-    // Delete goes directly via RLS-protected Supabase (no sensitive fields to protect on delete)
     const { error } = await supabase.from("health_records").delete().eq("id", deleteId);
     if (error) {
       toast.error("Erro ao excluir registro.");
@@ -65,45 +52,51 @@ export default function HealthRecordsList({ records, loading, onEdit, onDetail, 
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {records.map((record, i) => (
-          <div
-            key={record.id}
-            className="bg-card border border-border/50 rounded-xl p-4 shadow-health hover:shadow-lg transition-shadow animate-fade-in"
-            style={{ animationDelay: `${i * 0.05}s` }}
-          >
-            <div className="flex items-start justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-                  <Calendar className="w-4 h-4 text-accent-foreground" />
+        <AnimatePresence mode="popLayout">
+          {records.map((record, i) => (
+            <motion.div
+              key={record.id}
+              layout
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2, delay: i * 0.04, ease: "easeOut" }}
+              className="bg-card border border-border/50 rounded-xl p-4 shadow-health hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
+                    <Calendar className="w-4 h-4 text-accent-foreground" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm text-foreground">{formatMonthYear(record.record_date)}</p>
+                    {i === 0 && <Badge variant="outline" className="text-xs text-primary border-primary/30 bg-primary-light mt-0.5">Mais recente</Badge>}
+                  </div>
                 </div>
-                <div>
-                  <p className="font-semibold text-sm text-foreground">{formatMonthYear(record.record_date)}</p>
-                  {i === 0 && <Badge variant="outline" className="text-xs text-primary border-primary/30 bg-primary-light mt-0.5">Mais recente</Badge>}
+                <div className="flex gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDetail(record)}>
+                    <Eye className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(record)}>
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(record.id)}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-1">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onDetail(record)}>
-                  <Eye className="w-3.5 h-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEdit(record)}>
-                  <Pencil className="w-3.5 h-3.5" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteId(record.id)}>
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-3 gap-2">
-              <Metric label="Peso" value={record.weight} unit="kg" />
-              <Metric label="Gordura" value={record.body_fat} unit="%" />
-              <Metric label="Músculo" value={record.muscle} unit="kg" />
-              <Metric label="Água" value={record.water} unit="%" />
-              <Metric label="Proteína" value={record.protein} unit="%" />
-              <Metric label="Massa Óssea" value={record.bone_mass} unit="kg" />
-            </div>
-          </div>
-        ))}
+              <div className="grid grid-cols-3 gap-2">
+                <Metric label="Peso" value={record.weight} unit="kg" />
+                <Metric label="Gordura" value={record.body_fat} unit="%" />
+                <Metric label="Músculo" value={record.muscle} unit="kg" />
+                <Metric label="Água" value={record.water} unit="%" />
+                <Metric label="Proteína" value={record.protein} unit="%" />
+                <Metric label="Massa Óssea" value={record.bone_mass} unit="kg" />
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
 
       <AlertDialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,8 +6,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Heart, Eye, EyeOff, Lock } from "lucide-react";
+import { Heart, Eye, EyeOff, Lock, Check, X } from "lucide-react";
+
+interface StrengthCriterion {
+  label: string;
+  test: (pw: string) => boolean;
+}
+
+const criteria: StrengthCriterion[] = [
+  { label: "Mínimo 8 caracteres", test: (pw) => pw.length >= 8 },
+  { label: "Letra maiúscula", test: (pw) => /[A-Z]/.test(pw) },
+  { label: "Letra minúscula", test: (pw) => /[a-z]/.test(pw) },
+  { label: "Número", test: (pw) => /[0-9]/.test(pw) },
+  { label: "Símbolo (!@#$%&*)", test: (pw) => /[!@#$%&*]/.test(pw) },
+];
+
+function usePasswordStrength(password: string) {
+  return useMemo(() => {
+    const passed = criteria.filter((c) => c.test(password)).length;
+    const percent = Math.round((passed / criteria.length) * 100);
+    let label = "";
+    let colorClass = "";
+    let progressClass = "";
+    if (passed === 0) { label = ""; colorClass = ""; progressClass = ""; }
+    else if (passed <= 2) { label = "Fraca"; colorClass = "text-destructive"; progressClass = "[&>div]:bg-destructive"; }
+    else if (passed <= 3) { label = "Média"; colorClass = "text-warning"; progressClass = "[&>div]:bg-warning"; }
+    else if (passed === 4) { label = "Boa"; colorClass = "text-primary"; progressClass = "[&>div]:bg-primary"; }
+    else { label = "Forte"; colorClass = "text-success"; progressClass = "[&>div]:bg-success"; }
+    return { passed, percent, label, colorClass, progressClass };
+  }, [password]);
+}
 
 export default function ChangePassword() {
   const [password, setPassword] = useState("");
@@ -17,6 +47,8 @@ export default function ChangePassword() {
   const [loading, setLoading] = useState(false);
   const { profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
+
+  const strength = usePasswordStrength(password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,19 +65,15 @@ export default function ChangePassword() {
       const { error } = await supabase.auth.updateUser({ password });
       if (error) throw error;
 
-      // Mark is_default_password as false
-      await supabase
-        .from("profiles")
-        .update({ is_default_password: false })
-        .eq("id", profile?.id);
-
+      await supabase.from("profiles").update({ is_default_password: false }).eq("id", profile?.id);
       await refreshProfile();
       toast.success("Senha alterada com sucesso!");
 
       if (profile?.role === "admin") navigate("/admin");
       else navigate("/dashboard");
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao alterar senha.");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Erro ao alterar senha.";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -80,6 +108,7 @@ export default function ChangePassword() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* New password */}
               <div className="space-y-2">
                 <Label htmlFor="password">Nova senha</Label>
                 <div className="relative">
@@ -96,7 +125,33 @@ export default function ChangePassword() {
                     {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+
+                {/* Strength bar */}
+                {password.length > 0 && (
+                  <div className="space-y-2 pt-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Força da senha</span>
+                      {strength.label && (
+                        <span className={`text-xs font-semibold ${strength.colorClass}`}>{strength.label}</span>
+                      )}
+                    </div>
+                    <Progress value={strength.percent} className={`h-1.5 ${strength.progressClass}`} />
+                    <ul className="grid grid-cols-1 gap-1 mt-2">
+                      {criteria.map((c) => {
+                        const ok = c.test(password);
+                        return (
+                          <li key={c.label} className={`flex items-center gap-1.5 text-xs ${ok ? "text-success" : "text-muted-foreground"}`}>
+                            {ok ? <Check className="w-3 h-3 flex-shrink-0" /> : <X className="w-3 h-3 flex-shrink-0" />}
+                            {c.label}
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                )}
               </div>
+
+              {/* Confirm */}
               <div className="space-y-2">
                 <Label htmlFor="confirm">Confirmar nova senha</Label>
                 <div className="relative">
@@ -113,11 +168,17 @@ export default function ChangePassword() {
                     {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
+                {confirm.length > 0 && password !== confirm && (
+                  <p className="text-xs text-destructive flex items-center gap-1">
+                    <X className="w-3 h-3" /> As senhas não coincidem
+                  </p>
+                )}
               </div>
+
               <Button
                 type="submit"
                 className="w-full h-11 gradient-hero text-primary-foreground font-semibold shadow-health hover:opacity-90 transition-opacity"
-                disabled={loading}
+                disabled={loading || password.length < 8}
               >
                 {loading ? "Salvando..." : "Definir nova senha"}
               </Button>

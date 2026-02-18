@@ -9,12 +9,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { User, Camera, Save, AlertTriangle } from "lucide-react";
+import { useAvatarUpload } from "@/hooks/useAvatarUpload";
 
 export default function Profile() {
   const { profile, refreshProfile, isProfileComplete } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const { uploading: uploadingAvatar, handleUpload: handleAvatarUpload } = useAvatarUpload();
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
@@ -25,7 +26,6 @@ export default function Profile() {
     gender: profile?.gender ?? "",
   });
 
-  // Sync form when profile changes (e.g. after refreshProfile)
   useEffect(() => {
     if (profile) {
       setForm({
@@ -37,39 +37,6 @@ export default function Profile() {
       });
     }
   }, [profile]);
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !profile) return;
-
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Apenas imagens são permitidas (JPEG, PNG, WebP, GIF).");
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("A imagem deve ter no máximo 5MB.");
-      return;
-    }
-
-    setUploadingAvatar(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const path = `${profile.id}/avatar.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
-      await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", profile.id);
-      await refreshProfile();
-      toast.success("Foto de perfil atualizada!");
-    } catch {
-      toast.error("Erro ao fazer upload da foto.");
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,15 +53,11 @@ export default function Profile() {
         height: form.height ? parseFloat(form.height) : null,
         gender: form.gender || null,
       };
-      const { error } = await supabase
-        .from("profiles")
-        .update(updates)
-        .eq("id", profile.id);
+      const { error } = await supabase.from("profiles").update(updates).eq("id", profile.id);
       if (error) throw error;
       await refreshProfile();
       toast.success("Perfil atualizado com sucesso!");
 
-      // Redirect to dashboard if profile was previously incomplete
       if (wasIncomplete && updates.name && updates.birth_date) {
         navigate("/dashboard");
       }
@@ -113,7 +76,6 @@ export default function Profile() {
           <p className="text-muted-foreground mt-1">Gerencie suas informações pessoais</p>
         </div>
 
-        {/* Incomplete profile banner */}
         {!isProfileComplete && (
           <div className="flex items-start gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3">
             <AlertTriangle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
@@ -131,7 +93,7 @@ export default function Profile() {
             <div className="relative group">
               <div className="w-24 h-24 rounded-2xl gradient-hero flex items-center justify-center overflow-hidden shadow-health">
                 {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                  <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" loading="lazy" />
                 ) : (
                   <User className="w-12 h-12 text-primary-foreground" />
                 )}
@@ -143,21 +105,14 @@ export default function Profile() {
               >
                 <Camera className="w-5 h-5 text-primary-foreground" />
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleAvatarUpload}
-              />
+              <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
             </div>
             <div className="text-center">
               <p className="font-medium text-foreground">{profile?.name || profile?.email}</p>
               {profile?.name && <p className="text-sm text-muted-foreground">{profile.email}</p>}
             </div>
             <Button
-              variant="outline"
-              size="sm"
+              variant="outline" size="sm"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingAvatar}
               className="gap-2 sm:hidden"
@@ -176,28 +131,19 @@ export default function Profile() {
           <CardContent>
             <form onSubmit={handleSave} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="name">
-                  Nome <span className="text-destructive">*</span>
-                </Label>
+                <Label htmlFor="name">Nome <span className="text-destructive">*</span></Label>
                 <Input
-                  id="name"
-                  type="text"
-                  value={form.name}
+                  id="name" type="text" value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Seu nome completo"
-                  maxLength={120}
+                  placeholder="Seu nome completo" maxLength={120}
                   required={!isProfileComplete}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="birth_date">
-                  Data de nascimento <span className="text-destructive">*</span>
-                </Label>
+                <Label htmlFor="birth_date">Data de nascimento <span className="text-destructive">*</span></Label>
                 <Input
-                  id="birth_date"
-                  type="date"
-                  value={form.birth_date}
+                  id="birth_date" type="date" value={form.birth_date}
                   onChange={(e) => setForm({ ...form, birth_date: e.target.value })}
                   required={!isProfileComplete}
                 />
@@ -206,29 +152,13 @@ export default function Profile() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="weight">Peso inicial (kg)</Label>
-                  <Input
-                    id="weight"
-                    type="number"
-                    step="0.1"
-                    min="20"
-                    max="500"
-                    value={form.weight}
-                    onChange={(e) => setForm({ ...form, weight: e.target.value })}
-                    placeholder="70.0"
-                  />
+                  <Input id="weight" type="number" step="0.1" min="20" max="500" value={form.weight}
+                    onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="70.0" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="height">Altura (cm)</Label>
-                  <Input
-                    id="height"
-                    type="number"
-                    step="0.1"
-                    min="50"
-                    max="300"
-                    value={form.height}
-                    onChange={(e) => setForm({ ...form, height: e.target.value })}
-                    placeholder="170"
-                  />
+                  <Input id="height" type="number" step="0.1" min="50" max="300" value={form.height}
+                    onChange={(e) => setForm({ ...form, height: e.target.value })} placeholder="170" />
                 </div>
               </div>
 
@@ -241,8 +171,7 @@ export default function Profile() {
                     { value: "other", label: "Outro" },
                   ].map((opt) => (
                     <button
-                      key={opt.value}
-                      type="button"
+                      key={opt.value} type="button"
                       onClick={() => setForm({ ...form, gender: opt.value })}
                       className={`py-2 px-3 rounded-lg border text-sm font-medium transition-all ${
                         form.gender === opt.value
@@ -257,8 +186,7 @@ export default function Profile() {
               </div>
 
               <Button
-                type="submit"
-                disabled={saving}
+                type="submit" disabled={saving}
                 className="w-full gradient-hero text-primary-foreground shadow-health hover:opacity-90 gap-2"
               >
                 <Save className="w-4 h-4" />

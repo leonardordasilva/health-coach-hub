@@ -4,8 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Timer, ChevronDown } from "lucide-react";
+import { User, Calendar, Weight, Ruler, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Timer, ChevronDown, AlertCircle } from "lucide-react";
 import BodyTypeIcon from "@/components/BodyTypeIcon";
 import { calculateAge, formatDate, getMetricDelta, calculateBMI, calculateBodyType, calculateBodyAge, formatMonthYear } from "@/lib/health";
 import HealthRecordForm from "@/components/HealthRecordForm";
@@ -14,20 +15,9 @@ import HealthRecordsList from "@/components/HealthRecordsList";
 import HealthAssessment from "@/components/HealthAssessment";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { AnimatePresence, motion } from "framer-motion";
-
-interface HealthRecord {
-  id: string;
-  record_date: string;
-  weight: number;
-  body_fat: number | null;
-  water: number | null;
-  basal_metabolism: number | null;
-  visceral_fat: number | null;
-  muscle: number | null;
-  protein: number | null;
-  bone_mass: number | null;
-  created_at: string;
-}
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAvatarUpload } from "@/hooks/useAvatarUpload";
+import type { HealthRecord } from "@/types/health";
 
 type DeltaItem = {
   label: string;
@@ -55,102 +45,66 @@ const chartMetrics: ChartMetric[] = [
   { key: "protein", label: "Proteína", unit: "%" },
 ];
 
+const LS_ANALYTICS_KEY = "hc_analytics_open";
+const LS_CHART_KEY = "hc_chart_open";
+const LS_RECORDS_KEY = "hc_records_open";
+
+function getLS(key: string, fallback: boolean): boolean {
+  try {
+    const v = localStorage.getItem(key);
+    return v === null ? fallback : v === "true";
+  } catch { return fallback; }
+}
+
+async function fetchHealthRecords(): Promise<HealthRecord[]> {
+  const { data, error } = await supabase.functions.invoke("health-records-read");
+  if (error) throw error;
+  return (data?.records ?? []) as HealthRecord[];
+}
+
 export default function Dashboard() {
-  const { profile, refreshProfile } = useAuth();
-  const [records, setRecords] = useState<HealthRecord[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { profile } = useAuth();
+  const queryClient = useQueryClient();
+  const { uploading: uploadingAvatar, handleUpload: handleAvatarUpload } = useAvatarUpload();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [showForm, setShowForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<HealthRecord | null>(null);
   const [detailRecord, setDetailRecord] = useState<HealthRecord | null>(null);
-  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [selectedChartMetric, setSelectedChartMetric] = useState<ChartMetric>(chartMetrics[0]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [analyticsOpen, setAnalyticsOpen] = useState(true);
-  const [chartOpen, setChartOpen] = useState(true);
-  const [recordsOpen, setRecordsOpen] = useState(true);
 
-  const fetchRecords = async () => {
-    try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/health-records-read`,
-        { headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } }
-      );
-      const json = await res.json();
-      if (json.records) setRecords(json.records as HealthRecord[]);
-    } catch (err) {
-      console.error("Error fetching health records:", err);
-    } finally {
-      setLoading(false);
-    }
+  const [analyticsOpen, setAnalyticsOpen] = useState(() => getLS(LS_ANALYTICS_KEY, true));
+  const [chartOpen, setChartOpen] = useState(() => getLS(LS_CHART_KEY, true));
+  const [recordsOpen, setRecordsOpen] = useState(() => getLS(LS_RECORDS_KEY, true));
+
+  const toggleSection = (setter: React.Dispatch<React.SetStateAction<boolean>>, lsKey: string) => {
+    setter(prev => {
+      const next = !prev;
+      try { localStorage.setItem(lsKey, String(next)); } catch { /* noop */ }
+      return next;
+    });
   };
 
-  useEffect(() => { fetchRecords(); }, []);
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !profile) return;
-
-    // Validate file type
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error("Apenas imagens são permitidas (JPEG, PNG, WebP, GIF).");
-      return;
-    }
-
-    // Validate file size (5MB limit)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("A imagem deve ter no máximo 5MB.");
-      return;
-    }
-
-    setUploadingAvatar(true);
-    try {
-      const ext = file.name.split(".").pop();
-      const path = `${profile.id}/avatar.${ext}`;
-      const { error: uploadError } = await supabase.storage
-        .from("avatars")
-        .upload(path, file, { upsert: true });
-      if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
-      await supabase.from("profiles").update({ avatar_url: publicUrl }).eq("id", profile.id);
-      await refreshProfile();
-      toast.success("Foto de perfil atualizada!");
-    } catch (err: any) {
-      toast.error("Erro ao fazer upload da foto.");
-    } finally {
-      setUploadingAvatar(false);
-    }
-  };
+  const { data: records = [], isLoading: loading } = useQuery({
+    queryKey: ["health-records"],
+    queryFn: fetchHealthRecords,
+  });
 
   const age = profile?.birth_date ? calculateAge(profile.birth_date) : null;
 
-  // Body type & body age from latest record
   const latestRecord = records[0];
+
   const bodyMetrics = useMemo(() => {
     if (!latestRecord || !profile?.height || !profile?.birth_date) return null;
     const bmi = calculateBMI(latestRecord.weight, profile.height);
     const bodyType = calculateBodyType(
-      latestRecord.weight,
-      profile.height,
-      age ?? 0,
-      bmi.value,
-      latestRecord.body_fat ?? 0,
-      latestRecord.muscle ?? 0
+      latestRecord.weight, profile.height, age ?? 0,
+      bmi.value, latestRecord.body_fat ?? 0, latestRecord.muscle ?? 0
     );
-    const bodyAge = calculateBodyAge(
-      age ?? 0,
-      bmi.value,
-      latestRecord.body_fat,
-      latestRecord.muscle,
-      latestRecord.weight
-    );
+    const bodyAge = calculateBodyAge(age ?? 0, bmi.value, latestRecord.body_fat, latestRecord.muscle, latestRecord.weight);
     return { bmi, bodyType, bodyAge };
   }, [latestRecord, profile, age]);
 
-  // Year filter
   const availableYears = useMemo(() => {
     const years = [...new Set(records.map(r => new Date(r.record_date + "T00:00:00").getFullYear()))].sort((a, b) => b - a);
     return years;
@@ -169,16 +123,14 @@ export default function Dashboard() {
     return records.filter(r => new Date(r.record_date + "T00:00:00").getFullYear() === selectedYear);
   }, [records, selectedYear]);
 
-  // Analytics: ordenar por data para garantir evolução correta (mais antigo → mais recente)
   const sortedByDate = useMemo(
     () => [...records].sort((a, b) => a.record_date.localeCompare(b.record_date)),
     [records]
   );
-  const first = sortedByDate[0];                            // mais antigo
-  const last = sortedByDate[sortedByDate.length - 1];      // mais recente
-  const secondLast = sortedByDate[sortedByDate.length - 2]; // penúltimo
+  const first = sortedByDate[0];
+  const last = sortedByDate[sortedByDate.length - 1];
+  const secondLast = sortedByDate[sortedByDate.length - 2];
 
-  // Chart data — todos os registros ordenados cronologicamente (sem filtro de ano)
   const chartData = useMemo(() => {
     return [...records]
       .sort((a, b) => a.record_date.localeCompare(b.record_date))
@@ -189,6 +141,15 @@ export default function Dashboard() {
       .filter(d => d.value !== null);
   }, [records, selectedChartMetric]);
 
+  // Inactivity alert: last record older than 30 days
+  const inactivityAlert = useMemo(() => {
+    if (!latestRecord) return null;
+    const lastDate = new Date(latestRecord.record_date + "T00:00:00");
+    const diffDays = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+    return diffDays > 30 ? { lastDate, diffDays } : null;
+  }, [latestRecord]);
+
+  const refreshRecords = () => queryClient.invalidateQueries({ queryKey: ["health-records"] });
 
   const DeltaRow = ({ item, current, previous }: { item: DeltaItem; current: HealthRecord; previous: HealthRecord }) => {
     const delta = getMetricDelta(
@@ -217,6 +178,28 @@ export default function Dashboard() {
           <p className="text-muted-foreground mt-1">Acompanhe sua evolução de saúde</p>
         </div>
 
+        {/* Inactivity alert */}
+        {inactivityAlert && (
+          <div className="flex items-start gap-3 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3">
+            <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-warning">Que tal atualizar seus dados?</p>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Seu último registro foi em {formatMonthYear(latestRecord!.record_date)} — há {inactivityAlert.diffDays} dias.
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-warning/40 text-warning hover:bg-warning/10 flex-shrink-0"
+              onClick={() => { setEditingRecord(null); setShowForm(true); }}
+            >
+              <Plus className="w-3.5 h-3.5 mr-1" />
+              Novo registro
+            </Button>
+          </div>
+        )}
+
         {/* Profile Card */}
         <Card className="shadow-health border-border/50 overflow-hidden">
           <div className="h-2 gradient-hero" />
@@ -226,7 +209,7 @@ export default function Dashboard() {
               <div className="relative group flex-shrink-0">
                 <div className="w-20 h-20 rounded-2xl gradient-hero flex items-center justify-center overflow-hidden shadow-health">
                   {profile?.avatar_url ? (
-                    <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                    <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     <User className="w-10 h-10 text-primary-foreground" />
                   )}
@@ -236,20 +219,13 @@ export default function Dashboard() {
                   disabled={uploadingAvatar}
                   className="absolute inset-0 rounded-2xl bg-foreground/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
                 >
-                  <Camera className="w-5 h-5 text-primary-foreground" />
+                  <span className="text-primary-foreground text-xs font-medium">Alterar</span>
                 </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarUpload}
-                />
+                <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
               </div>
 
               {/* Info + Body Metrics */}
               <div className="flex flex-1 flex-col sm:flex-row gap-4 w-full text-center sm:text-left">
-                {/* Left: personal info */}
                 <div className="flex-1">
                   <h2 className="text-lg font-semibold text-foreground">{profile?.name || profile?.email}</h2>
                   {profile?.name && <p className="text-sm text-muted-foreground">{profile.email}</p>}
@@ -275,7 +251,6 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-                {/* Right: body type & body age */}
                 {bodyMetrics && (
                   <div className="flex flex-row sm:flex-col justify-center gap-3 sm:min-w-[160px]">
                     <div className="flex items-center gap-3 bg-primary/8 border border-primary/20 rounded-xl px-4 py-3 flex-1 sm:flex-none">
@@ -303,7 +278,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* AI Health Assessment — latest record */}
+        {/* AI Health Assessment */}
         {latestRecord && profile && (
           <Card className="shadow-health border-border/50">
             <CardContent className="p-5">
@@ -320,7 +295,7 @@ export default function Dashboard() {
         {records.length >= 2 && (
           <div className="space-y-4">
             <button
-              onClick={() => setAnalyticsOpen(o => !o)}
+              onClick={() => toggleSection(setAnalyticsOpen, LS_ANALYTICS_KEY)}
               className="flex items-center gap-2 w-full text-left group"
             >
               <h2 className="text-lg font-semibold text-foreground">Painel Analítico</h2>
@@ -339,38 +314,28 @@ export default function Dashboard() {
                   style={{ overflow: "hidden" }}
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* First vs Last */}
                     <Card className="shadow-health border-border/50">
                       <CardHeader className="pb-3">
-                        <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                          Evolução total
-                        </CardTitle>
+                        <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Evolução total</CardTitle>
                         <p className="text-xs text-muted-foreground/70 mt-0.5">
                           {formatMonthYear(first?.record_date)} → {formatMonthYear(last?.record_date)}
                         </p>
                       </CardHeader>
                       <CardContent className="space-y-2">
-                        {deltaItems.map((item) => (
-                          <DeltaRow key={item.field} item={item} current={last} previous={first} />
-                        ))}
+                        {deltaItems.map((item) => <DeltaRow key={item.field} item={item} current={last} previous={first} />)}
                       </CardContent>
                     </Card>
 
-                    {/* Second last vs last */}
                     {secondLast && (
                       <Card className="shadow-health border-border/50">
                         <CardHeader className="pb-3">
-                          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                            Período recente
-                          </CardTitle>
+                          <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Período recente</CardTitle>
                           <p className="text-xs text-muted-foreground/70 mt-0.5">
                             {formatMonthYear(secondLast?.record_date)} → {formatMonthYear(last?.record_date)}
                           </p>
                         </CardHeader>
                         <CardContent className="space-y-2">
-                          {deltaItems.map((item) => (
-                            <DeltaRow key={item.field} item={item} current={last} previous={secondLast} />
-                          ))}
+                          {deltaItems.map((item) => <DeltaRow key={item.field} item={item} current={last} previous={secondLast} />)}
                         </CardContent>
                       </Card>
                     )}
@@ -385,7 +350,7 @@ export default function Dashboard() {
         {records.length >= 2 && (
           <div className="space-y-4">
             <button
-              onClick={() => setChartOpen(o => !o)}
+              onClick={() => toggleSection(setChartOpen, LS_CHART_KEY)}
               className="flex items-center gap-2 w-full text-left"
             >
               <h2 className="text-lg font-semibold text-foreground">Evolução Temporal</h2>
@@ -450,10 +415,15 @@ export default function Dashboard() {
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <button
-              onClick={() => setRecordsOpen(o => !o)}
+              onClick={() => toggleSection(setRecordsOpen, LS_RECORDS_KEY)}
               className="flex items-center gap-2 text-left"
             >
               <h2 className="text-lg font-semibold text-foreground">Registros de Saúde</h2>
+              {!loading && records.length > 0 && (
+                <Badge variant="outline" className="text-xs text-muted-foreground border-border/60">
+                  {records.length}
+                </Badge>
+              )}
               <motion.span animate={{ rotate: recordsOpen ? 0 : -90 }} transition={{ duration: 0.2 }}>
                 <ChevronDown className="w-5 h-5 text-muted-foreground" />
               </motion.span>
@@ -494,9 +464,7 @@ export default function Dashboard() {
                   {availableYears.length > 0 && (
                     <div className="flex items-center gap-2">
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
+                        variant="ghost" size="icon" className="h-8 w-8"
                         disabled={selectedYear === null || availableYears.indexOf(selectedYear) >= availableYears.length - 1}
                         onClick={() => {
                           if (selectedYear === null) return;
@@ -506,7 +474,6 @@ export default function Dashboard() {
                       >
                         <ChevronLeft className="w-4 h-4" />
                       </Button>
-
                       <div className="flex gap-1.5 flex-wrap">
                         {availableYears.map(year => (
                           <button
@@ -522,11 +489,8 @@ export default function Dashboard() {
                           </button>
                         ))}
                       </div>
-
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
+                        variant="ghost" size="icon" className="h-8 w-8"
                         disabled={selectedYear === null || availableYears.indexOf(selectedYear) <= 0}
                         onClick={() => {
                           if (selectedYear === null) return;
@@ -544,7 +508,7 @@ export default function Dashboard() {
                     loading={loading}
                     onEdit={(r) => { setEditingRecord(r); setShowForm(true); }}
                     onDetail={(r) => setDetailRecord(r)}
-                    onDelete={fetchRecords}
+                    onDelete={refreshRecords}
                   />
                 </div>
               </motion.div>
@@ -553,16 +517,14 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Form Modal */}
       {showForm && (
         <HealthRecordForm
           record={editingRecord}
           onClose={() => setShowForm(false)}
-          onSaved={() => { setShowForm(false); fetchRecords(); }}
+          onSaved={() => { setShowForm(false); refreshRecords(); }}
         />
       )}
 
-      {/* Detail Modal */}
       {detailRecord && profile && (
         <HealthRecordDetail
           record={detailRecord}
