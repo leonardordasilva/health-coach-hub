@@ -198,15 +198,15 @@ export default function Dashboard() {
                       item.isPositiveGood
                     );
                     if (!delta) return null;
-                    return (
-                      <div key={item.field} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
-                        <span className="text-sm text-muted-foreground">{item.label}</span>
-                        <div className={`flex items-center gap-1 text-sm font-semibold ${delta.isImprovement ? "text-success" : "text-destructive"}`}>
-                          {delta.isImprovement ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                          {delta.formatted}{item.unit}
+                      return (
+                        <div key={item.field} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
+                          <span className="text-sm text-muted-foreground">{item.label}</span>
+                          <div className={`flex items-center gap-1 text-sm font-semibold ${delta.isNeutral ? "text-muted-foreground" : delta.isImprovement ? "text-success" : "text-destructive"}`}>
+                            {!delta.isNeutral && (delta.isImprovement ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />)}
+                            {delta.formatted}{item.unit}
+                          </div>
                         </div>
-                      </div>
-                    );
+                      );
                   })}
                 </CardContent>
               </Card>
@@ -230,8 +230,8 @@ export default function Dashboard() {
                       return (
                         <div key={item.field} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
                           <span className="text-sm text-muted-foreground">{item.label}</span>
-                          <div className={`flex items-center gap-1 text-sm font-semibold ${delta.isImprovement ? "text-success" : "text-destructive"}`}>
-                            {delta.isImprovement ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
+                          <div className={`flex items-center gap-1 text-sm font-semibold ${delta.isNeutral ? "text-muted-foreground" : delta.isImprovement ? "text-success" : "text-destructive"}`}>
+                            {!delta.isNeutral && (delta.isImprovement ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />)}
                             {delta.formatted}{item.unit}
                           </div>
                         </div>
