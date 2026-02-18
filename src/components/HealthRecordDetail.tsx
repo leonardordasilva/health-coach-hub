@@ -1,7 +1,7 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { calculateBMI, calculateBodyType, calculateAge, formatMonthYear } from "@/lib/health";
-import { Activity, Droplets, Flame, Heart, Scale, Dumbbell, Bone, Percent, Target } from "lucide-react";
+import { calculateBMI, calculateBodyType, calculateBodyAge, calculateAge, formatMonthYear } from "@/lib/health";
+import { Activity, Droplets, Flame, Heart, Scale, Dumbbell, Bone, Percent, Target, Timer } from "lucide-react";
 import BodyTypeIcon from "@/components/BodyTypeIcon";
 
 interface HealthRecord {
@@ -50,6 +50,9 @@ export default function HealthRecordDetail({ record, profile, onClose }: Props) 
   const bmi = height ? calculateBMI(record.weight, height) : null;
   const bodyType = height && bmi && record.body_fat != null && record.muscle != null
     ? calculateBodyType(record.weight, height, age, bmi.value, record.body_fat, record.muscle)
+    : null;
+  const bodyAge = bmi
+    ? calculateBodyAge(age, bmi.value, record.body_fat, record.muscle, record.weight)
     : null;
 
   const metrics = [
@@ -107,21 +110,34 @@ export default function HealthRecordDetail({ record, profile, onClose }: Props) 
                 </Badge>
               </div>
 
-              {/* Body Type */}
-              {bodyType && (
-                <div className="p-3.5 rounded-xl border bg-card">
-                  <p className="text-xs text-muted-foreground mb-2">Tipo de Corpo</p>
-                  <div className="flex items-center gap-4">
-                    <div className="h-14 flex items-center justify-center px-2 bg-primary/8 border border-primary/20 rounded-xl">
-                      <BodyTypeIcon bodyType={bodyType.type} color="hsl(var(--primary))" width={28} height={46} />
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-foreground">{bodyType.type}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">{bodyType.description}</p>
+              {/* Body Type + Body Age */}
+              <div className="grid grid-cols-1 gap-2.5">
+                {bodyType && (
+                  <div className="p-3.5 rounded-xl border bg-card">
+                    <p className="text-xs text-muted-foreground mb-2">Tipo de Corpo</p>
+                    <div className="flex items-center gap-4">
+                      <div className="h-14 flex items-center justify-center px-2 bg-primary/8 border border-primary/20 rounded-xl">
+                        <BodyTypeIcon bodyType={bodyType.type} color="hsl(var(--primary))" width={28} height={46} />
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-foreground">{bodyType.type}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{bodyType.description}</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
+                {bodyAge !== null && (
+                  <div className="flex items-center gap-3 p-3.5 rounded-xl border bg-card">
+                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                      <Timer className="w-4 h-4 text-accent-foreground" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Idade Corporal</p>
+                      <p className="text-lg font-bold text-foreground">{bodyAge} anos</p>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {!bodyType && (
                 <p className="text-xs text-muted-foreground italic">
