@@ -53,13 +53,13 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
       const payload = record?.id ? { ...form, id: record.id } : form;
       const { error } = await supabase.functions.invoke("health-records-write", { body: payload });
       if (error) {
-        const status = (error as { context?: { status?: number } }).context?.status;
-        if (status === 409) {
+        const status = (error as any).context?.status;
+        const message = (error as any).message ?? "";
+        if (status === 409 || message.includes("409")) {
           toast.error("Já existe um registro para esta data. Escolha outra data ou edite o registro existente.");
-        } else {
-          throw error;
+          return;
         }
-        return;
+        throw error;
       }
       toast.success(record?.id ? "Registro atualizado!" : "Registro criado!");
       onSaved();
