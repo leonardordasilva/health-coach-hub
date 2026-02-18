@@ -50,6 +50,19 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
     if (!user) return;
     setSaving(true);
     try {
+      // Pre-validate: check if a record already exists for this date
+      const { data: existing } = await supabase
+        .from("health_records")
+        .select("id")
+        .eq("record_date", form.record_date)
+        .maybeSingle();
+
+      const isDuplicate = existing && (!record?.id || existing.id !== record.id);
+      if (isDuplicate) {
+        toast.error("Já existe um registro para esta data. Escolha outra data ou edite o registro existente.");
+        return;
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       const payload = record?.id ? { ...form, id: record.id } : form;
 
@@ -63,11 +76,6 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
         },
         body: JSON.stringify(payload),
       });
-
-      if (response.status === 409) {
-        toast.error("Já existe um registro para esta data. Escolha outra data ou edite o registro existente.");
-        return;
-      }
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
