@@ -3,19 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, ThumbsUp, ThumbsDown, AlertTriangle, Lightbulb, Loader2, ChevronDown, ChevronUp, ClipboardList, History } from "lucide-react";
 import { toast } from "sonner";
 import { calculateBMI, calculateBodyAge, calculateBodyType, formatMonthYear } from "@/lib/health";
-
-interface HealthRecord {
-  id: string;
-  record_date: string;
-  weight: number;
-  body_fat: number | null;
-  water: number | null;
-  basal_metabolism: number | null;
-  visceral_fat: number | null;
-  muscle: number | null;
-  protein: number | null;
-  bone_mass: number | null;
-}
+import type { HealthRecord } from "@/types/health";
 
 interface Profile {
   height: number | null;
@@ -40,46 +28,14 @@ interface Props {
 }
 
 const sections = [
-  {
-    key: "positivos" as keyof Assessment,
-    label: "Pontos Positivos",
-    icon: ThumbsUp,
-    colorClass: "text-success",
-    bgClass: "bg-success/8 border-success/25",
-    iconBg: "bg-success/15",
-  },
-  {
-    key: "negativos" as keyof Assessment,
-    label: "Pontos Negativos",
-    icon: ThumbsDown,
-    colorClass: "text-destructive",
-    bgClass: "bg-destructive/8 border-destructive/25",
-    iconBg: "bg-destructive/15",
-  },
-  {
-    key: "atencao" as keyof Assessment,
-    label: "Pontos de Atenção",
-    icon: AlertTriangle,
-    colorClass: "text-warning",
-    bgClass: "bg-warning/8 border-warning/25",
-    iconBg: "bg-warning/15",
-  },
-  {
-    key: "sugestoes" as keyof Assessment,
-    label: "Sugestões de Melhora",
-    icon: Lightbulb,
-    colorClass: "text-primary",
-    bgClass: "bg-primary/8 border-primary/20",
-    iconBg: "bg-primary/15",
-  },
+  { key: "positivos" as keyof Assessment, label: "Pontos Positivos", icon: ThumbsUp, colorClass: "text-success", bgClass: "bg-success/8 border-success/25", iconBg: "bg-success/15" },
+  { key: "negativos" as keyof Assessment, label: "Pontos Negativos", icon: ThumbsDown, colorClass: "text-destructive", bgClass: "bg-destructive/8 border-destructive/25", iconBg: "bg-destructive/15" },
+  { key: "atencao" as keyof Assessment, label: "Pontos de Atenção", icon: AlertTriangle, colorClass: "text-warning", bgClass: "bg-warning/8 border-warning/25", iconBg: "bg-warning/15" },
+  { key: "sugestoes" as keyof Assessment, label: "Sugestões de Melhora", icon: Lightbulb, colorClass: "text-primary", bgClass: "bg-primary/8 border-primary/20", iconBg: "bg-primary/15" },
 ];
 
-// Canonical snapshots
 const recordSnapshot = (r: HealthRecord) =>
-  JSON.stringify([
-    r.id, r.record_date, r.weight, r.body_fat, r.water,
-    r.basal_metabolism, r.visceral_fat, r.muscle, r.protein, r.bone_mass,
-  ]);
+  JSON.stringify([r.id, r.record_date, r.weight, r.body_fat, r.water, r.basal_metabolism, r.visceral_fat, r.muscle, r.protein, r.bone_mass]);
 
 const snapshotLatest = (r: HealthRecord) => recordSnapshot(r);
 const snapshotGeneral = (rs: HealthRecord[]) =>
@@ -90,11 +46,9 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
   const [cacheLoading, setCacheLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [activeType, setActiveType] = useState<AssessmentType | null>(null);
-  // Cache persistido no banco — carregado no mount e salvo após cada geração
   const [assessments, setAssessments] = useState<Partial<Record<AssessmentType, Assessment>>>({});
   const [snapshots, setSnapshots] = useState<Partial<Record<AssessmentType, string>>>({});
 
-  // Carrega cache do banco ao montar
   useEffect(() => {
     const loadCache = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -124,10 +78,9 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
   const currentSnapshot = (type: AssessmentType) =>
     type === "latest" ? snapshotLatest(record) : snapshotGeneral(allRecords);
 
-  // Dados mudaram desde a última geração deste tipo? (compara com snapshot do banco)
   const dataChangedFor = (type: AssessmentType) => {
     const saved = snapshots[type];
-    if (!saved) return false; // nunca gerado — não é "mudança"
+    if (!saved) return false;
     return currentSnapshot(type) !== saved;
   };
 
@@ -148,7 +101,6 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
     return { ...r, bmi, bmiClassification, bodyAge, bodyType };
   };
 
-  // Selecionar tipo: restaura cache se existir e dados não mudaram; caso contrário gera
   const handleSelectType = async (type: AssessmentType) => {
     const cached = assessments[type];
     if (cached && !dataChangedFor(type)) {
@@ -159,7 +111,6 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
     await callAPI(type);
   };
 
-  // Salva no banco (upsert por user_id + assessment_type)
   const saveToDB = async (type: AssessmentType, snap: string, assessment: Assessment) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
@@ -172,44 +123,22 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
       );
   };
 
-  // Chama a API, salva resultado no cache local e no banco
   const callAPI = async (type: AssessmentType) => {
     setLoading(true);
     setActiveType(type);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-
       const body =
         type === "latest"
-          ? {
-              assessmentType: "latest",
-              record: buildRecordPayload(record),
-              profile: { height: profile.height, age: profile.age ?? 0, gender: profile.gender },
-            }
-          : {
-              assessmentType: "general",
-              records: allRecords.map(buildRecordPayload),
-              profile: { height: profile.height, age: profile.age ?? 0, gender: profile.gender },
-            };
+          ? { assessmentType: "latest", record: buildRecordPayload(record), profile: { height: profile.height, age: profile.age ?? 0, gender: profile.gender } }
+          : { assessmentType: "general", records: allRecords.map(buildRecordPayload), profile: { height: profile.height, age: profile.age ?? 0, gender: profile.gender } };
 
-      const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/health-assessment`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify(body),
-        }
-      );
-
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Erro desconhecido");
+      const { data, error } = await supabase.functions.invoke("health-assessment", { body });
+      if (error) throw error;
 
       const snap = currentSnapshot(type);
-      setAssessments(prev => ({ ...prev, [type]: json.assessment }));
+      setAssessments(prev => ({ ...prev, [type]: data.assessment }));
       setSnapshots(prev => ({ ...prev, [type]: snap }));
-      await saveToDB(type, snap, json.assessment);
+      await saveToDB(type, snap, data.assessment);
       setExpanded(true);
     } catch (err) {
       console.error("Assessment error:", err);
@@ -224,7 +153,6 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
   const hasDataChanged = activeType ? dataChangedFor(activeType) : false;
   const hasData = assessment && sections.some(s => (assessment[s.key]?.length ?? 0) > 0);
 
-  // Tela de seleção de tipo
   if (!activeType) {
     if (cacheLoading) {
       return (
@@ -286,7 +214,6 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
     );
   }
 
-  // Loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-3 py-6 text-muted-foreground">
@@ -298,7 +225,6 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
 
   return (
     <div className="space-y-3">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary" />
@@ -315,7 +241,6 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
         </button>
       </div>
 
-      {/* Results */}
       {assessment && expanded && hasData && (
         <div className="space-y-2.5 animate-fade-in">
           {sections.map((s) => {
@@ -343,12 +268,8 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
         </div>
       )}
 
-      {/* Footer actions */}
       <div className="flex items-center justify-between pt-1">
-        <button
-          onClick={() => setActiveType(null)}
-          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <button onClick={() => setActiveType(null)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">
           ← Trocar tipo
         </button>
         {hasDataChanged ? (

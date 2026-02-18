@@ -40,7 +40,6 @@ export function calculateBodyType(
   gorduraCorporal: number,
   musculo: number
 ): BodyTypeResult {
-  // Muscle ratio relative to weight as proxy for "high muscle"
   const muscleRatio = (musculo / weight) * 100;
   const highMuscle = muscleRatio > 40;
 
@@ -61,6 +60,9 @@ export function calculateBodyType(
     if (muscleRatio > 35) return { type: "Grosso Conjunto", description: "Sobrepeso com massa muscular significativa" };
     return { type: "Sobrepeso", description: "IMC em faixa de sobrepeso com gordura elevada" };
   }
+
+  // Suppress unused parameter warning
+  void age; void heightCm;
 
   return { type: "Obeso", description: "IMC em faixa de obesidade — recomenda-se acompanhamento médico" };
 }
@@ -83,12 +85,10 @@ export function calculateBodyAge(
 ): number {
   let bodyAge = chronologicalAge;
 
-  // BMI adjustment
   if (bmi > 30) bodyAge += (bmi - 30) * 0.5;
   else if (bmi > 25) bodyAge += (bmi - 25) * 0.3;
   else if (bmi < 18.5) bodyAge += (18.5 - bmi) * 0.3;
 
-  // Body fat adjustment
   if (bodyFat != null) {
     if (bodyFat > 30) bodyAge += (bodyFat - 30) * 0.4;
     else if (bodyFat > 25) bodyAge += (bodyFat - 25) * 0.2;
@@ -96,7 +96,6 @@ export function calculateBodyAge(
     else if (bodyFat < 18) bodyAge -= (18 - bodyFat) * 0.2;
   }
 
-  // Muscle ratio adjustment
   if (muscle != null && weight > 0) {
     const muscleRatio = (muscle / weight) * 100;
     if (muscleRatio > 45) bodyAge -= 3;
@@ -106,29 +105,8 @@ export function calculateBodyAge(
   return Math.max(Math.round(bodyAge), 10);
 }
 
-export function generatePassword(): string {
-  const upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-  const lower = "abcdefghijklmnopqrstuvwxyz";
-  const numbers = "0123456789";
-  const symbols = "!@#$%&*";
-  const all = upper + lower + numbers + symbols;
-
-  let password = "";
-  password += upper[Math.floor(Math.random() * upper.length)];
-  password += lower[Math.floor(Math.random() * lower.length)];
-  password += numbers[Math.floor(Math.random() * numbers.length)];
-  password += symbols[Math.floor(Math.random() * symbols.length)];
-
-  for (let i = 4; i < 14; i++) {
-    password += all[Math.floor(Math.random() * all.length)];
-  }
-
-  return password.split("").sort(() => Math.random() - 0.5).join("");
-}
-
 export function formatDate(date: string | null | undefined): string {
   if (!date) return "—";
-  // If it's just a date (YYYY-MM-DD), append time to avoid timezone shift
   const normalized = date.includes("T") ? date : date + "T00:00:00";
   const d = new Date(normalized);
   if (isNaN(d.getTime())) return "—";
@@ -149,7 +127,6 @@ export function formatMonthYear(date: string | null | undefined): string {
   if (isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" });
 }
-
 
 export function getMetricDelta(
   current: number | null | undefined,

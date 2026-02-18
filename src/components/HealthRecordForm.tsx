@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -8,22 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ClipboardList } from "lucide-react";
-
-interface HealthRecord {
-  id?: string;
-  record_date: string;
-  weight: number;
-  body_fat: number | null;
-  water: number | null;
-  basal_metabolism: number | null;
-  visceral_fat: number | null;
-  muscle: number | null;
-  protein: number | null;
-  bone_mass: number | null;
-}
+import type { HealthRecordInput } from "@/types/health";
 
 interface Props {
-  record: HealthRecord | null;
+  record: HealthRecordInput | null;
   onClose: () => void;
   onSaved: () => void;
 }
@@ -31,7 +18,7 @@ interface Props {
 export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
   const { user } = useAuth();
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<Omit<HealthRecord, "id">>({
+  const [form, setForm] = useState<Omit<HealthRecordInput, "id">>({
     record_date: record?.record_date || new Date().toISOString().slice(0, 7) + "-01",
     weight: record?.weight || 0,
     body_fat: record?.body_fat || null,
@@ -53,21 +40,9 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
     if (!user) return;
     setSaving(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
       const payload = record?.id ? { ...form, id: record.id } : form;
-
-      const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/health-records-write`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        }
-      );
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Erro desconhecido");
+      const { error } = await supabase.functions.invoke("health-records-write", { body: payload });
+      if (error) throw error;
       toast.success(record?.id ? "Registro atualizado!" : "Registro criado!");
       onSaved();
     } catch (err: unknown) {
@@ -89,10 +64,7 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
     { key: "bone_mass", label: "Massa Óssea", unit: "kg" },
   ];
 
-  // Format date to YYYY-MM for input[type=month]
-  const monthValue = typeof form.record_date === "string"
-    ? form.record_date.slice(0, 7)
-    : "";
+  const monthValue = typeof form.record_date === "string" ? form.record_date.slice(0, 7) : "";
 
   return (
     <Dialog open onOpenChange={onClose}>
