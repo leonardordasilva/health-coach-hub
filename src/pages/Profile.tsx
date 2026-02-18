@@ -22,6 +22,7 @@ export default function Profile() {
     birth_date: profile?.birth_date ?? "",
     weight: profile?.weight?.toString() ?? "",
     height: profile?.height?.toString() ?? "",
+    gender: profile?.gender ?? "",
   });
 
   // Sync form when profile changes (e.g. after refreshProfile)
@@ -32,6 +33,7 @@ export default function Profile() {
         birth_date: profile.birth_date ?? "",
         weight: profile.weight?.toString() ?? "",
         height: profile.height?.toString() ?? "",
+        gender: profile.gender ?? "",
       });
     }
   }, [profile]);
@@ -82,6 +84,7 @@ export default function Profile() {
         birth_date: form.birth_date || null,
         weight: form.weight ? parseFloat(form.weight) : null,
         height: form.height ? parseFloat(form.height) : null,
+        gender: form.gender || null,
       };
       const { error } = await supabase
         .from("profiles")
@@ -226,6 +229,30 @@ export default function Profile() {
                     onChange={(e) => setForm({ ...form, height: e.target.value })}
                     placeholder="170"
                   />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="gender">Sexo biológico</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: "male", label: "Masculino" },
+                    { value: "female", label: "Feminino" },
+                    { value: "other", label: "Outro" },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setForm({ ...form, gender: opt.value })}
+                      className={`py-2 px-3 rounded-lg border text-sm font-medium transition-all ${
+                        form.gender === opt.value
+                          ? "border-primary bg-primary/10 text-primary"
+                          : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
