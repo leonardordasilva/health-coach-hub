@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
     // Decrypt each record
     const records = await Promise.all((rows ?? []).map(async (row) => {
       let decrypted: Record<string, number | null> = {
-        body_fat: null, water: null, basal_metabolism: null,
+        weight: null, body_fat: null, water: null, basal_metabolism: null,
         visceral_fat: null, muscle: null, protein: null, bone_mass: null,
       };
 
@@ -76,17 +76,27 @@ Deno.serve(async (req) => {
           const plain = await decrypt(row.encrypted_data, encryptionKey);
           decrypted = JSON.parse(plain);
         } catch {
-          // If decryption fails (e.g., old plaintext records), keep nulls
+          // If decryption fails (e.g., old plaintext records), fall back to plaintext weight
+          decrypted.weight = row.weight;
         }
+      } else {
+        // Legacy records without encryption — use plaintext weight
+        decrypted.weight = row.weight;
       }
 
       return {
         id: row.id,
         user_id: row.user_id,
         record_date: row.record_date,
-        weight: row.weight,
+        weight: decrypted.weight ?? row.weight,
         created_at: row.created_at,
-        ...decrypted,
+        body_fat: decrypted.body_fat ?? null,
+        water: decrypted.water ?? null,
+        basal_metabolism: decrypted.basal_metabolism ?? null,
+        visceral_fat: decrypted.visceral_fat ?? null,
+        muscle: decrypted.muscle ?? null,
+        protein: decrypted.protein ?? null,
+        bone_mass: decrypted.bone_mass ?? null,
       };
     }));
 
