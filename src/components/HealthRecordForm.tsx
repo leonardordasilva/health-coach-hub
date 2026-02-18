@@ -120,7 +120,7 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
                 <Input
                   id={f.key}
                   type="number"
-                  step="0.1"
+                  step="0.01"
                   min="0"
                   value={form[f.key] !== null && form[f.key] !== undefined ? String(form[f.key]) : ""}
                   onChange={(e) => setField(f.key, e.target.value)}
