@@ -1,6 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Heart, LogOut, User, LayoutDashboard, Users, UserCog } from "lucide-react";
+import { Heart, LogOut, LayoutDashboard, Users, UserCog } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -15,8 +14,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const navItems = profile?.role === "admin"
     ? [{ icon: Users, label: "Usuários", to: "/admin" }]
     : [
-        { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
         { icon: UserCog, label: "Perfil", to: "/perfil" },
+        { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
       ];
 
   return (
@@ -51,36 +50,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
               {item.label}
             </Link>
           ))}
-        </nav>
-
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 mb-3 px-3">
-            <div className="w-8 h-8 rounded-full gradient-hero flex items-center justify-center flex-shrink-0">
-              {profile?.avatar_url ? (
-                <img src={profile.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-              ) : (
-                <User className="w-4 h-4 text-primary-foreground" />
-              )}
-            </div>
-            <div className="min-w-0">
-              <p className="text-xs font-medium text-sidebar-foreground truncate">
-                {profile?.name || profile?.email}
-              </p>
-              {profile?.name && (
-                <p className="text-xs text-sidebar-foreground/50 truncate">{profile.email}</p>
-              )}
-            </div>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
             onClick={signOut}
-            className="w-full justify-start gap-2 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 w-full text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="w-4 h-4 flex-shrink-0" />
             Sair
-          </Button>
-        </div>
+          </button>
+        </nav>
       </aside>
 
       {/* Mobile header */}
@@ -107,14 +84,12 @@ export default function AppLayout({ children }: AppLayoutProps) {
                 <item.icon className="w-4 h-4" />
               </Link>
             ))}
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={signOut}
-              className="text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent h-9 w-9"
+              className="p-2 rounded-lg transition-colors text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
             >
               <LogOut className="w-4 h-4" />
-            </Button>
+            </button>
           </div>
         </header>
 
