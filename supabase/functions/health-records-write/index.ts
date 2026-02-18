@@ -71,14 +71,14 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Encrypt sensitive fields
-    const sensitiveData = JSON.stringify({ body_fat, water, basal_metabolism, visceral_fat, muscle, protein, bone_mass });
+    // Encrypt all sensitive fields including weight
+    const sensitiveData = JSON.stringify({ weight: Number(weight), body_fat, water, basal_metabolism, visceral_fat, muscle, protein, bone_mass });
     const encryptedData = await encrypt(sensitiveData, encryptionKey);
 
     const payload = {
       user_id: userId,
       record_date,
-      weight: Number(weight),
+      weight: 0, // placeholder — real value is encrypted
       body_fat: null,
       water: null,
       basal_metabolism: null,
