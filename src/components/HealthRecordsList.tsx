@@ -34,6 +34,7 @@ export default function HealthRecordsList({ records, loading, onEdit, onDetail, 
 
   const handleDelete = async () => {
     if (!deleteId) return;
+    // Delete goes directly via RLS-protected Supabase (no sensitive fields to protect on delete)
     const { error } = await supabase.from("health_records").delete().eq("id", deleteId);
     if (error) {
       toast.error("Erro ao excluir registro.");
