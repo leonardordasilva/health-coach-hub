@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
 
     if (existingProfile) {
       return new Response(JSON.stringify({ error: "EMAIL_EXISTS" }), {
-        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
