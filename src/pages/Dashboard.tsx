@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Minus, Plus } from "lucide-react";
+import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import { calculateAge, formatDate, getMetricDelta } from "@/lib/health";
 import HealthRecordForm from "@/components/HealthRecordForm";
 import HealthRecordDetail from "@/components/HealthRecordDetail";
@@ -87,7 +87,26 @@ export default function Dashboard() {
 
   const age = profile?.birth_date ? calculateAge(profile.birth_date) : null;
 
-  // Analytics: first vs last, last-1 vs last
+  // Year filter
+  const availableYears = useMemo(() => {
+    const years = [...new Set(records.map(r => new Date(r.record_date + "T00:00:00").getFullYear()))].sort((a, b) => b - a);
+    return years;
+  }, [records]);
+
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (availableYears.length > 0 && selectedYear === null) {
+      setSelectedYear(availableYears[0]);
+    }
+  }, [availableYears]);
+
+  const filteredRecords = useMemo(() => {
+    if (selectedYear === null) return records;
+    return records.filter(r => new Date(r.record_date + "T00:00:00").getFullYear() === selectedYear);
+  }, [records, selectedYear]);
+
+  // Analytics: first vs last, last-1 vs last (use all records for analytics)
   const first = records[records.length - 1];
   const last = records[0];
   const secondLast = records[1];
@@ -227,7 +246,7 @@ export default function Dashboard() {
 
         {/* Health Records */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <h2 className="text-lg font-semibold text-foreground">Registros de Saúde</h2>
             <Button
               onClick={() => { setEditingRecord(null); setShowForm(true); }}
@@ -239,8 +258,57 @@ export default function Dashboard() {
             </Button>
           </div>
 
+          {/* Year selector */}
+          {availableYears.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                disabled={selectedYear === null || availableYears.indexOf(selectedYear) >= availableYears.length - 1}
+                onClick={() => {
+                  if (selectedYear === null) return;
+                  const idx = availableYears.indexOf(selectedYear);
+                  if (idx < availableYears.length - 1) setSelectedYear(availableYears[idx + 1]);
+                }}
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+
+              <div className="flex gap-1.5 flex-wrap">
+                {availableYears.map(year => (
+                  <button
+                    key={year}
+                    onClick={() => setSelectedYear(year)}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                      selectedYear === year
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    }`}
+                  >
+                    {year}
+                  </button>
+                ))}
+              </div>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                disabled={selectedYear === null || availableYears.indexOf(selectedYear) <= 0}
+                onClick={() => {
+                  if (selectedYear === null) return;
+                  const idx = availableYears.indexOf(selectedYear);
+                  if (idx > 0) setSelectedYear(availableYears[idx - 1]);
+                }}
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
           <HealthRecordsList
-            records={records}
+            records={filteredRecords}
             loading={loading}
             onEdit={(r) => { setEditingRecord(r); setShowForm(true); }}
             onDetail={(r) => setDetailRecord(r)}
