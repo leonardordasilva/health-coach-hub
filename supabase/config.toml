@@ -17,3 +17,10 @@ verify_jwt = false
 
 [functions.health-assessment]
 verify_jwt = false
+
+[functions.self-register]
+verify_jwt = false
+
+[functions.confirm-password-reset]
+verify_jwt = false
+
