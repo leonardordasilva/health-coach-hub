@@ -18,14 +18,11 @@ const Spinner = () => (
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
   const { user, profile, loading, profileLoading } = useAuth();
 
-  // Wait for auth session to resolve
-  if (loading) return <Spinner />;
+  // Wait for auth session + initial profile to resolve
+  if (loading || profileLoading) return <Spinner />;
 
   // No session → redirect to login
   if (!user) return <Navigate to="/login" replace />;
-
-  // Session exists but profile still loading
-  if (profileLoading && !profile) return <Spinner />;
 
   // Force password change if default
   if (profile?.is_default_password && window.location.pathname !== "/trocar-senha") {

@@ -26,20 +26,16 @@ const Spinner = () => (
 function AuthRedirect() {
   const { user, profile, loading, profileLoading } = useAuth();
 
-  // Wait for auth session
-  if (loading) return <Spinner />;
+  // Wait for auth session + profile
+  if (loading || profileLoading) return <Spinner />;
 
   // No user → go to login
   if (!user) return <Navigate to="/login" replace />;
-
-  // User is known but profile still loading → keep spinner briefly
-  if (profileLoading && !profile) return <Spinner />;
 
   // Profile loaded — redirect based on role
   if (profile?.is_default_password) return <Navigate to="/trocar-senha" replace />;
   if (profile?.role === "admin") return <Navigate to="/admin" replace />;
 
-  // Default: go to dashboard (also covers case where profile is null after load)
   return <Navigate to="/dashboard" replace />;
 }
 
