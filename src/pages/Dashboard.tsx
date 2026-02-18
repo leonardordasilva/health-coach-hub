@@ -5,12 +5,13 @@ import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Timer } from "lucide-react";
+import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Timer, Download } from "lucide-react";
 import BodyTypeIcon from "@/components/BodyTypeIcon";
 import { calculateAge, formatDate, getMetricDelta, calculateBMI, calculateBodyType, calculateBodyAge } from "@/lib/health";
 import HealthRecordForm from "@/components/HealthRecordForm";
 import HealthRecordDetail from "@/components/HealthRecordDetail";
 import HealthRecordsList from "@/components/HealthRecordsList";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 interface HealthRecord {
   id: string;
@@ -42,6 +43,16 @@ const deltaItems: DeltaItem[] = [
   { label: "Gordura Visceral", unit: "", field: "visceral_fat", isPositiveGood: false },
 ];
 
+type ChartMetric = { key: keyof HealthRecord; label: string; unit: string; };
+
+const chartMetrics: ChartMetric[] = [
+  { key: "weight", label: "Peso", unit: "kg" },
+  { key: "body_fat", label: "Gordura Corporal", unit: "%" },
+  { key: "muscle", label: "Músculo", unit: "kg" },
+  { key: "water", label: "Água", unit: "%" },
+  { key: "protein", label: "Proteína", unit: "%" },
+];
+
 export default function Dashboard() {
   const { profile, refreshProfile } = useAuth();
   const [records, setRecords] = useState<HealthRecord[]>([]);
@@ -50,6 +61,7 @@ export default function Dashboard() {
   const [editingRecord, setEditingRecord] = useState<HealthRecord | null>(null);
   const [detailRecord, setDetailRecord] = useState<HealthRecord | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [selectedChartMetric, setSelectedChartMetric] = useState<ChartMetric>(chartMetrics[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchRecords = async () => {
@@ -148,6 +160,48 @@ export default function Dashboard() {
   const last = records[0];
   const secondLast = records[1];
 
+  // Chart data — filteredRecords ordenados cronologicamente
+  const chartData = useMemo(() => {
+    return [...filteredRecords]
+      .sort((a, b) => a.record_date.localeCompare(b.record_date))
+      .map(r => ({
+        date: new Date(r.record_date + "T00:00:00").toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }),
+        value: r[selectedChartMetric.key] as number | null,
+      }))
+      .filter(d => d.value !== null);
+  }, [filteredRecords, selectedChartMetric]);
+
+  // CSV Export
+  const exportToCSV = () => {
+    if (filteredRecords.length === 0) {
+      toast.error("Nenhum registro para exportar neste período.");
+      return;
+    }
+    const header = ["Data", "Peso (kg)", "Gordura Corporal (%)", "Água (%)", "Músculo (kg)", "Proteína (%)", "Gordura Visceral", "Metabolismo Basal (kcal)", "Massa Óssea (kg)"];
+    const rows = [...filteredRecords]
+      .sort((a, b) => a.record_date.localeCompare(b.record_date))
+      .map(r => [
+        new Date(r.record_date + "T00:00:00").toLocaleDateString("pt-BR"),
+        r.weight,
+        r.body_fat ?? "",
+        r.water ?? "",
+        r.muscle ?? "",
+        r.protein ?? "",
+        r.visceral_fat ?? "",
+        r.basal_metabolism ?? "",
+        r.bone_mass ?? "",
+      ].join(";"));
+    const csv = [header.join(";"), ...rows].join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `saude_${selectedYear ?? "todos"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("CSV exportado com sucesso!");
+  };
+
   const DeltaRow = ({ item, current, previous }: { item: DeltaItem; current: HealthRecord; previous: HealthRecord }) => {
     const delta = getMetricDelta(
       current[item.field] as number | null,
@@ -209,7 +263,8 @@ export default function Dashboard() {
               <div className="flex flex-1 flex-col sm:flex-row gap-4 w-full text-center sm:text-left">
                 {/* Left: personal info */}
                 <div className="flex-1">
-                  <h2 className="text-lg font-semibold text-foreground">{profile?.email}</h2>
+                  <h2 className="text-lg font-semibold text-foreground">{profile?.name || profile?.email}</h2>
+                  {profile?.name && <p className="text-sm text-muted-foreground">{profile.email}</p>}
                   <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-3">
                     {profile?.birth_date && (
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -299,18 +354,73 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* Evolution Chart */}
+        {filteredRecords.length >= 2 && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-foreground">Evolução Temporal</h2>
+            <Card className="shadow-health border-border/50">
+              <CardHeader className="pb-2">
+                <div className="flex flex-wrap gap-2">
+                  {chartMetrics.map(m => (
+                    <button
+                      key={m.key as string}
+                      onClick={() => setSelectedChartMetric(m)}
+                      className={`px-3 py-1 rounded-full text-sm font-medium transition-all ${
+                        selectedChartMetric.key === m.key
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {chartData.length < 2 ? (
+                  <p className="text-sm text-muted-foreground text-center py-8">Dados insuficientes para exibir o gráfico desta métrica neste período.</p>
+                ) : (
+                  <ResponsiveContainer width="100%" height={220}>
+                    <LineChart data={chartData} margin={{ top: 5, right: 10, left: -10, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
+                      <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} domain={["auto", "auto"]} />
+                      <Tooltip
+                        contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
+                        formatter={(value: number) => [`${value} ${selectedChartMetric.unit}`, selectedChartMetric.label]}
+                      />
+                      <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Health Records */}
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <h2 className="text-lg font-semibold text-foreground">Registros de Saúde</h2>
-            <Button
-              onClick={() => { setEditingRecord(null); setShowForm(true); }}
-              className="gradient-hero text-primary-foreground shadow-health hover:opacity-90 gap-2"
-              size="sm"
-            >
-              <Plus className="w-4 h-4" />
-              Novo registro
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={exportToCSV}
+                className="gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Exportar CSV
+              </Button>
+              <Button
+                onClick={() => { setEditingRecord(null); setShowForm(true); }}
+                className="gradient-hero text-primary-foreground shadow-health hover:opacity-90 gap-2"
+                size="sm"
+              >
+                <Plus className="w-4 h-4" />
+                Novo registro
+              </Button>
+            </div>
           </div>
 
           {/* Year selector */}
