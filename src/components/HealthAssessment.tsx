@@ -75,12 +75,25 @@ const sections = [
   },
 ];
 
+// Canonical snapshot of a record's raw data fields (no derived metrics)
+const recordSnapshot = (r: HealthRecord) =>
+  JSON.stringify([
+    r.id, r.record_date, r.weight, r.body_fat, r.water,
+    r.basal_metabolism, r.visceral_fat, r.muscle, r.protein, r.bone_mass,
+  ]);
+
+const snapshotLatest = (r: HealthRecord) => recordSnapshot(r);
+const snapshotGeneral = (rs: HealthRecord[]) =>
+  JSON.stringify([...rs].sort((a, b) => a.id.localeCompare(b.id)).map(recordSnapshot));
+
 export default function HealthAssessment({ record, allRecords, profile }: Props) {
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [assessmentType, setAssessmentType] = useState<AssessmentType | null>(null);
   const [generatedType, setGeneratedType] = useState<AssessmentType | null>(null);
+  // Snapshot of data used when the last assessment was generated
+  const [dataSnapshot, setDataSnapshot] = useState<string | null>(null);
 
   const buildRecordPayload = (r: HealthRecord) => {
     const height = profile.height;
@@ -98,6 +111,16 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
     }
     return { ...r, bmi, bmiClassification, bodyAge, bodyType };
   };
+
+  // Whether the current data differs from what was used to generate the assessment
+  const hasDataChanged = (() => {
+    if (!dataSnapshot || !generatedType) return false;
+    const current =
+      generatedType === "latest"
+        ? snapshotLatest(record)
+        : snapshotGeneral(allRecords);
+    return current !== dataSnapshot;
+  })();
 
   const handleGenerate = async (type: AssessmentType) => {
     setLoading(true);
@@ -133,6 +156,10 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
       if (!res.ok) throw new Error(json.error || "Erro desconhecido");
       setAssessment(json.assessment);
       setGeneratedType(type);
+      // Save snapshot of data used in this generation
+      setDataSnapshot(
+        type === "latest" ? snapshotLatest(record) : snapshotGeneral(allRecords)
+      );
       setExpanded(true);
     } catch (err) {
       console.error("Assessment error:", err);
@@ -251,19 +278,26 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
       {/* Footer actions */}
       <div className="flex items-center justify-between pt-1">
         <button
-          onClick={() => { setAssessment(null); setAssessmentType(null); setGeneratedType(null); setExpanded(false); }}
+          onClick={() => { setAssessment(null); setAssessmentType(null); setGeneratedType(null); setDataSnapshot(null); setExpanded(false); }}
           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           ← Trocar tipo
         </button>
-        <button
-          onClick={() => generatedType && handleGenerate(generatedType)}
-          disabled={loading}
-          className="text-xs text-muted-foreground hover:text-primary transition-colors flex items-center gap-1"
-        >
-          <Sparkles className="w-3 h-3" />
-          Regenerar
-        </button>
+        {hasDataChanged ? (
+          <button
+            onClick={() => generatedType && handleGenerate(generatedType)}
+            disabled={loading}
+            className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 font-medium"
+          >
+            <Sparkles className="w-3 h-3" />
+            Regenerar com novos dados
+          </button>
+        ) : (
+          <span className="text-xs text-muted-foreground/60 flex items-center gap-1 cursor-default select-none">
+            <Sparkles className="w-3 h-3" />
+            Sem alterações nos dados
+          </span>
+        )}
       </div>
     </div>
   );
