@@ -159,12 +159,12 @@ export default function Profile() {
                 <div className="space-y-2">
                   <Label htmlFor="weight">Peso inicial (kg)</Label>
                   <Input id="weight" type="number" step="0.1" min="20" max="500" value={form.weight}
-                    onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="70.0" />
+                    onChange={(e) => setForm({ ...form, weight: e.target.value })} placeholder="Ex: 70,5" />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="height">Altura (cm)</Label>
                   <Input id="height" type="number" step="0.1" min="50" max="300" value={form.height}
-                    onChange={(e) => setForm({ ...form, height: e.target.value })} placeholder="170" />
+                    onChange={(e) => setForm({ ...form, height: e.target.value })} placeholder="Ex: 170" />
                 </div>
               </div>
 
@@ -204,7 +204,7 @@ export default function Profile() {
                       id="weight_goal" type="number" step="0.1" min="20" max="500"
                       value={form.weight_goal}
                       onChange={(e) => setForm({ ...form, weight_goal: e.target.value })}
-                      placeholder="65.0"
+                      placeholder="Ex: 65,0"
                     />
                   </div>
                   <div className="space-y-2">
@@ -213,7 +213,7 @@ export default function Profile() {
                       id="body_fat_goal" type="number" step="0.1" min="1" max="70"
                       value={form.body_fat_goal}
                       onChange={(e) => setForm({ ...form, body_fat_goal: e.target.value })}
-                      placeholder="20.0"
+                      placeholder="Ex: 20,0"
                     />
                   </div>
                 </div>
