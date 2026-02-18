@@ -332,23 +332,21 @@ export default function AdminPanel() {
             <div className="space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <div><p className="text-xs text-muted-foreground">Nome</p><p className="text-sm font-medium">{selectedUser.name || "—"}</p></div>
+                </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                   <div><p className="text-xs text-muted-foreground">E-mail</p><p className="text-sm font-medium">{selectedUser.email}</p></div>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                   <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                     <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                     <div><p className="text-xs text-muted-foreground">Nascimento</p><p className="text-sm font-medium">{formatDate(selectedUser.birth_date)}</p></div>
-                   </div>
-                   <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                     <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                     <div><p className="text-xs text-muted-foreground">Nome</p><p className="text-sm font-medium">{selectedUser.name || "—"}</p></div>
-                   </div>
-                 </div>
-                 <div className="p-3 rounded-lg bg-muted/50">
-                   <p className="text-xs text-muted-foreground">Cadastrado em</p>
-                   <p className="text-sm font-medium">{formatDateTime(selectedUser.created_at)}</p>
-                 </div>
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                  <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <div><p className="text-xs text-muted-foreground">Nascimento</p><p className="text-sm font-medium">{formatDate(selectedUser.birth_date)}</p></div>
+                </div>
+                <div className="p-3 rounded-lg bg-muted/50">
+                  <p className="text-xs text-muted-foreground">Cadastrado em</p>
+                  <p className="text-sm font-medium">{formatDateTime(selectedUser.created_at)}</p>
+                </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 pt-2">
                 <Button
