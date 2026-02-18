@@ -96,15 +96,28 @@ export function generatePassword(): string {
 
 export function formatDate(date: string | null | undefined): string {
   if (!date) return "—";
-  const d = new Date(date + "T00:00:00");
+  // If it's just a date (YYYY-MM-DD), append time to avoid timezone shift
+  const normalized = date.includes("T") ? date : date + "T00:00:00";
+  const d = new Date(normalized);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("pt-BR");
+}
+
+export function formatDateTime(date: string | null | undefined): string {
+  if (!date) return "—";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("pt-BR");
 }
 
 export function formatMonthYear(date: string | null | undefined): string {
   if (!date) return "—";
-  const d = new Date(date + "T00:00:00");
+  const normalized = date.includes("T") ? date : date + "T00:00:00";
+  const d = new Date(normalized);
+  if (isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" });
 }
+
 
 export function getMetricDelta(
   current: number | null | undefined,
