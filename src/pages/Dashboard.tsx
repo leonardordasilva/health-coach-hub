@@ -5,7 +5,7 @@ import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
-import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight, Activity, Timer } from "lucide-react";
 import { calculateAge, formatDate, getMetricDelta, calculateBMI, calculateBodyType, calculateBodyAge } from "@/lib/health";
 import HealthRecordForm from "@/components/HealthRecordForm";
 import HealthRecordDetail from "@/components/HealthRecordDetail";
@@ -166,7 +166,7 @@ export default function Dashboard() {
           <CardContent className="p-5">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
               {/* Avatar */}
-              <div className="relative group">
+              <div className="relative group flex-shrink-0">
                 <div className="w-20 h-20 rounded-2xl gradient-hero flex items-center justify-center overflow-hidden shadow-health">
                   {profile?.avatar_url ? (
                     <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
@@ -190,40 +190,53 @@ export default function Dashboard() {
                 />
               </div>
 
-              {/* Info */}
-              <div className="flex-1 text-center sm:text-left">
-                <h2 className="text-lg font-semibold text-foreground">{profile?.email}</h2>
-                <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-3">
-                  {profile?.birth_date && (
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Calendar className="w-4 h-4" />
-                      <span>{formatDate(profile.birth_date)} ({age} anos)</span>
-                    </div>
-                  )}
-                  {profile?.weight && (
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Weight className="w-4 h-4" />
-                      <span>{profile.weight} kg</span>
-                    </div>
-                  )}
-                  {profile?.height && (
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                      <Ruler className="w-4 h-4" />
-                      <span>{profile.height} cm</span>
-                    </div>
-                  )}
+              {/* Info + Body Metrics */}
+              <div className="flex flex-1 flex-col sm:flex-row gap-4 w-full text-center sm:text-left">
+                {/* Left: personal info */}
+                <div className="flex-1">
+                  <h2 className="text-lg font-semibold text-foreground">{profile?.email}</h2>
+                  <div className="flex flex-wrap justify-center sm:justify-start gap-3 mt-3">
+                    {profile?.birth_date && (
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Calendar className="w-4 h-4" />
+                        <span>{formatDate(profile.birth_date)} ({age} anos)</span>
+                      </div>
+                    )}
+                    {profile?.weight && (
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Weight className="w-4 h-4" />
+                        <span>{profile.weight} kg</span>
+                      </div>
+                    )}
+                    {profile?.height && (
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Ruler className="w-4 h-4" />
+                        <span>{profile.height} cm</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
 
-                {/* Body type & body age badges */}
+                {/* Right: body type & body age */}
                 {bodyMetrics && (
-                  <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
-                    <div className="flex items-center gap-1.5 bg-primary/10 rounded-full px-3 py-1">
-                      <span className="text-xs text-primary font-medium">Tipo de Corpo:</span>
-                      <span className="text-xs font-semibold text-primary">{bodyMetrics.bodyType.type}</span>
+                  <div className="flex flex-row sm:flex-col justify-center gap-3 sm:min-w-[160px]">
+                    <div className="flex items-center gap-3 bg-primary/8 border border-primary/20 rounded-xl px-4 py-3 flex-1 sm:flex-none">
+                      <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
+                        <Activity className="w-4.5 h-4.5 text-primary" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs text-muted-foreground leading-tight">Tipo de Corpo</p>
+                        <p className="text-sm font-semibold text-primary leading-tight mt-0.5">{bodyMetrics.bodyType.type}</p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5 bg-accent rounded-full px-3 py-1">
-                      <span className="text-xs text-accent-foreground font-medium">Idade Corporal:</span>
-                      <span className="text-xs font-semibold text-accent-foreground">{bodyMetrics.bodyAge} anos</span>
+                    <div className="flex items-center gap-3 bg-accent border border-border/40 rounded-xl px-4 py-3 flex-1 sm:flex-none">
+                      <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                        <Timer className="w-4.5 h-4.5 text-accent-foreground" />
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs text-muted-foreground leading-tight">Idade Corporal</p>
+                        <p className="text-sm font-semibold text-foreground leading-tight mt-0.5">{bodyMetrics.bodyAge} anos</p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -231,6 +244,7 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
 
         {/* Analytics Panel */}
         {records.length >= 2 && (
