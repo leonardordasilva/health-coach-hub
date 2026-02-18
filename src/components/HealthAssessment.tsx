@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Sparkles, ThumbsUp, ThumbsDown, AlertTriangle, Lightbulb, Loader2, ChevronDown, ChevronUp, ClipboardList, History } from "lucide-react";
 import { toast } from "sonner";
@@ -87,17 +87,44 @@ const snapshotGeneral = (rs: HealthRecord[]) =>
 
 export default function HealthAssessment({ record, allRecords, profile }: Props) {
   const [loading, setLoading] = useState(false);
+  const [cacheLoading, setCacheLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
-  // Tipo atualmente exibido (null = tela de seleção)
   const [activeType, setActiveType] = useState<AssessmentType | null>(null);
-  // Cache de avaliação e snapshot por tipo — nunca zerados ao trocar
+  // Cache persistido no banco — carregado no mount e salvo após cada geração
   const [assessments, setAssessments] = useState<Partial<Record<AssessmentType, Assessment>>>({});
   const [snapshots, setSnapshots] = useState<Partial<Record<AssessmentType, string>>>({});
+
+  // Carrega cache do banco ao montar
+  useEffect(() => {
+    const loadCache = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setCacheLoading(false); return; }
+
+      const { data, error } = await supabase
+        .from("health_assessment_cache")
+        .select("assessment_type, data_snapshot, assessment")
+        .eq("user_id", user.id);
+
+      if (!error && data) {
+        const cachedAssessments: Partial<Record<AssessmentType, Assessment>> = {};
+        const cachedSnapshots: Partial<Record<AssessmentType, string>> = {};
+        for (const row of data) {
+          const type = row.assessment_type as AssessmentType;
+          cachedAssessments[type] = row.assessment as unknown as Assessment;
+          cachedSnapshots[type] = row.data_snapshot;
+        }
+        setAssessments(cachedAssessments);
+        setSnapshots(cachedSnapshots);
+      }
+      setCacheLoading(false);
+    };
+    loadCache();
+  }, []);
 
   const currentSnapshot = (type: AssessmentType) =>
     type === "latest" ? snapshotLatest(record) : snapshotGeneral(allRecords);
 
-  // Dados mudaram desde a última geração deste tipo?
+  // Dados mudaram desde a última geração deste tipo? (compara com snapshot do banco)
   const dataChangedFor = (type: AssessmentType) => {
     const saved = snapshots[type];
     if (!saved) return false; // nunca gerado — não é "mudança"
@@ -125,7 +152,6 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
   const handleSelectType = async (type: AssessmentType) => {
     const cached = assessments[type];
     if (cached && !dataChangedFor(type)) {
-      // Restaura avaliação cacheada sem chamar a API
       setActiveType(type);
       setExpanded(true);
       return;
@@ -133,7 +159,20 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
     await callAPI(type);
   };
 
-  // Chama a API e salva resultado + snapshot no cache
+  // Salva no banco (upsert por user_id + assessment_type)
+  const saveToDB = async (type: AssessmentType, snap: string, assessment: Assessment) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await supabase
+      .from("health_assessment_cache")
+      .upsert(
+        [{ user_id: user.id, assessment_type: type, data_snapshot: snap, assessment: assessment as any }],
+        { onConflict: "user_id,assessment_type" }
+      );
+  };
+
+  // Chama a API, salva resultado no cache local e no banco
   const callAPI = async (type: AssessmentType) => {
     setLoading(true);
     setActiveType(type);
@@ -167,8 +206,10 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Erro desconhecido");
 
+      const snap = currentSnapshot(type);
       setAssessments(prev => ({ ...prev, [type]: json.assessment }));
-      setSnapshots(prev => ({ ...prev, [type]: currentSnapshot(type) }));
+      setSnapshots(prev => ({ ...prev, [type]: snap }));
+      await saveToDB(type, snap, json.assessment);
       setExpanded(true);
     } catch (err) {
       console.error("Assessment error:", err);
@@ -185,6 +226,15 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
 
   // Tela de seleção de tipo
   if (!activeType) {
+    if (cacheLoading) {
+      return (
+        <div className="flex items-center justify-center gap-3 py-6 text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin text-primary" />
+          <span className="text-sm">Carregando avaliação…</span>
+        </div>
+      );
+    }
+
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2 mb-1">
@@ -204,6 +254,9 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
               <p className="text-sm font-semibold text-primary">Registro atual</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 Avalia os dados do registro mais recente ({formatMonthYear(record.record_date)})
+                {assessments["latest"] && !dataChangedFor("latest") && (
+                  <span className="ml-1 text-success">· avaliação salva</span>
+                )}
               </p>
             </div>
           </button>
@@ -222,6 +275,9 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
                 {allRecords.length < 2
                   ? "Necessário ao menos 2 registros"
                   : `Analisa todos os ${allRecords.length} registros e a evolução ao longo do tempo`}
+                {assessments["general"] && !dataChangedFor("general") && allRecords.length >= 2 && (
+                  <span className="ml-1 text-success">· avaliação salva</span>
+                )}
               </p>
             </div>
           </button>
