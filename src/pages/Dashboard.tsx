@@ -46,16 +46,6 @@ const chartMetrics: ChartMetric[] = [
   { key: "protein", label: "Proteína", unit: "%" },
 ];
 
-const LS_ANALYTICS_KEY = "hc_analytics_open";
-const LS_CHART_KEY = "hc_chart_open";
-const LS_RECORDS_KEY = "hc_records_open";
-
-function getLS(key: string, fallback: boolean): boolean {
-  try {
-    const v = localStorage.getItem(key);
-    return v === null ? fallback : v === "true";
-  } catch { return fallback; }
-}
 
 async function fetchHealthRecords(): Promise<HealthRecord[]> {
   const { data, error } = await supabase.functions.invoke("health-records-read");
@@ -74,16 +64,12 @@ export default function Dashboard() {
   const [detailRecord, setDetailRecord] = useState<HealthRecord | null>(null);
   const [selectedChartMetric, setSelectedChartMetric] = useState<ChartMetric>(chartMetrics[0]);
 
-  const [analyticsOpen, setAnalyticsOpen] = useState(() => getLS(LS_ANALYTICS_KEY, true));
-  const [chartOpen, setChartOpen] = useState(() => getLS(LS_CHART_KEY, true));
-  const [recordsOpen, setRecordsOpen] = useState(() => getLS(LS_RECORDS_KEY, true));
+  const [analyticsOpen, setAnalyticsOpen] = useState(true);
+  const [chartOpen, setChartOpen] = useState(true);
+  const [recordsOpen, setRecordsOpen] = useState(true);
 
-  const toggleSection = (setter: React.Dispatch<React.SetStateAction<boolean>>, lsKey: string) => {
-    setter(prev => {
-      const next = !prev;
-      try { localStorage.setItem(lsKey, String(next)); } catch { /* noop */ }
-      return next;
-    });
+  const toggleSection = (setter: React.Dispatch<React.SetStateAction<boolean>>) => {
+    setter(prev => !prev);
   };
 
   const { data: records = [], isLoading: loading } = useQuery({
@@ -324,7 +310,7 @@ export default function Dashboard() {
                   </p>
                 </div>
               )}
-              {profile.body_fat_goal && latestRecord.body_fat != null && (
+              {profile.body_fat_goal && latestRecord.body_fat != null && first?.body_fat != null && (
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-muted-foreground">Gordura corporal</span>
@@ -335,9 +321,9 @@ export default function Dashboard() {
                   </div>
                   <Progress
                     value={Math.min(100, Math.max(0,
-                      profile.body_fat_goal < latestRecord.body_fat
-                        ? ((latestRecord.body_fat - latestRecord.body_fat) / (latestRecord.body_fat - profile.body_fat_goal)) * 100
-                        : 100
+                      first.body_fat === profile.body_fat_goal
+                        ? 100
+                        : ((first.body_fat - latestRecord.body_fat) / (first.body_fat - profile.body_fat_goal)) * 100
                     ))}
                     className="h-2"
                   />
@@ -356,7 +342,7 @@ export default function Dashboard() {
         {records.length >= 2 && (
           <div className="space-y-4">
             <button
-              onClick={() => toggleSection(setAnalyticsOpen, LS_ANALYTICS_KEY)}
+              onClick={() => toggleSection(setAnalyticsOpen)}
               className="flex items-center gap-2 w-full text-left group"
             >
               <h2 className="text-lg font-semibold text-foreground">Painel Analítico</h2>
@@ -411,7 +397,7 @@ export default function Dashboard() {
         {records.length >= 2 && (
           <div className="space-y-4">
             <button
-              onClick={() => toggleSection(setChartOpen, LS_CHART_KEY)}
+              onClick={() => toggleSection(setChartOpen)}
               className="flex items-center gap-2 w-full text-left"
             >
               <h2 className="text-lg font-semibold text-foreground">Evolução Temporal</h2>
@@ -476,7 +462,7 @@ export default function Dashboard() {
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <button
-              onClick={() => toggleSection(setRecordsOpen, LS_RECORDS_KEY)}
+              onClick={() => toggleSection(setRecordsOpen)}
               className="flex items-center gap-2 text-left"
             >
               <h2 className="text-lg font-semibold text-foreground">Registros de Saúde</h2>

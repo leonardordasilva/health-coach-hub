@@ -10,7 +10,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Users, Plus, Search, Trash2, RefreshCw, Eye, UserPlus, Mail, Calendar, Weight, User, TrendingUp } from "lucide-react";
+import { Users, Plus, Search, Trash2, RefreshCw, Eye, UserPlus, Mail, Calendar, User, TrendingUp } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/health";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -247,11 +247,10 @@ export default function AdminPanel() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead>E-mail</TableHead>
-                      <TableHead className="hidden sm:table-cell">Nascimento</TableHead>
-                      <TableHead className="hidden md:table-cell">Peso inicial</TableHead>
-                      <TableHead className="hidden md:table-cell">Altura</TableHead>
-                      <TableHead>Status</TableHead>
+        <TableHead>E-mail</TableHead>
+                       <TableHead className="hidden sm:table-cell">Nome</TableHead>
+                       <TableHead className="hidden md:table-cell">Nascimento</TableHead>
+                       <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -259,10 +258,9 @@ export default function AdminPanel() {
                     {filtered.map((user) => (
                       <TableRow key={user.id} className="hover:bg-muted/30">
                         <TableCell className="font-medium text-sm">{user.email}</TableCell>
-                        <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{formatDate(user.birth_date)}</TableCell>
-                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{user.weight ? `${user.weight} kg` : "—"}</TableCell>
-                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{user.height ? `${user.height} cm` : "—"}</TableCell>
-                        <TableCell>
+                         <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{user.name || "—"}</TableCell>
+                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(user.birth_date)}</TableCell>
+                         <TableCell>
                           {user.is_default_password ? (
                             <Badge variant="outline" className="text-warning border-warning/30 bg-warning/10 text-xs">Senha padrão</Badge>
                           ) : (
@@ -337,30 +335,20 @@ export default function AdminPanel() {
                   <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                   <div><p className="text-xs text-muted-foreground">E-mail</p><p className="text-sm font-medium">{selectedUser.email}</p></div>
                 </div>
-                {selectedUser.name && (
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <div><p className="text-xs text-muted-foreground">Nome</p><p className="text-sm font-medium">{selectedUser.name}</p></div>
-                  </div>
-                )}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <div><p className="text-xs text-muted-foreground">Nascimento</p><p className="text-sm font-medium">{formatDate(selectedUser.birth_date)}</p></div>
-                  </div>
-                  <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                    <Weight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <div><p className="text-xs text-muted-foreground">Peso inicial</p><p className="text-sm font-medium">{selectedUser.weight ? `${selectedUser.weight} kg` : "—"}</p></div>
-                  </div>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <p className="text-xs text-muted-foreground">Altura</p>
-                  <p className="text-sm font-medium">{selectedUser.height ? `${selectedUser.height} cm` : "—"}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-muted/50">
-                  <p className="text-xs text-muted-foreground">Cadastrado em</p>
-                  <p className="text-sm font-medium">{formatDateTime(selectedUser.created_at)}</p>
-                </div>
+                   <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                     <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                     <div><p className="text-xs text-muted-foreground">Nascimento</p><p className="text-sm font-medium">{formatDate(selectedUser.birth_date)}</p></div>
+                   </div>
+                   <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                     <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                     <div><p className="text-xs text-muted-foreground">Nome</p><p className="text-sm font-medium">{selectedUser.name || "—"}</p></div>
+                   </div>
+                 </div>
+                 <div className="p-3 rounded-lg bg-muted/50">
+                   <p className="text-xs text-muted-foreground">Cadastrado em</p>
+                   <p className="text-sm font-medium">{formatDateTime(selectedUser.created_at)}</p>
+                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 pt-2">
                 <Button
