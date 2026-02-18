@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Users, Plus, Search, Trash2, RefreshCw, Eye, UserPlus, Mail, Calendar, Weight } from "lucide-react";
-import { formatDate, generatePassword } from "@/lib/health";
+import { formatDate, formatDateTime, generatePassword } from "@/lib/health";
 
 interface UserProfile {
   id: string;
@@ -377,7 +377,7 @@ export default function AdminPanel() {
                 </div>
                 <div className="p-3 rounded-lg bg-muted/50">
                   <p className="text-xs text-muted-foreground">Cadastrado em</p>
-                  <p className="text-sm font-medium">{formatDate(selectedUser.created_at)}</p>
+                  <p className="text-sm font-medium">{formatDateTime(selectedUser.created_at)}</p>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 pt-2">
