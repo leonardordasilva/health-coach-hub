@@ -4,10 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { User, Calendar, Weight, Ruler, Camera, TrendingUp, TrendingDown, Plus, ChevronLeft, ChevronRight } from "lucide-react";
-import { calculateAge, formatDate, getMetricDelta } from "@/lib/health";
+import { calculateAge, formatDate, getMetricDelta, calculateBMI, calculateBodyType, calculateBodyAge } from "@/lib/health";
 import HealthRecordForm from "@/components/HealthRecordForm";
 import HealthRecordDetail from "@/components/HealthRecordDetail";
 import HealthRecordsList from "@/components/HealthRecordsList";
@@ -87,6 +86,29 @@ export default function Dashboard() {
 
   const age = profile?.birth_date ? calculateAge(profile.birth_date) : null;
 
+  // Body type & body age from latest record
+  const latestRecord = records[0];
+  const bodyMetrics = useMemo(() => {
+    if (!latestRecord || !profile?.height || !profile?.birth_date) return null;
+    const bmi = calculateBMI(latestRecord.weight, profile.height);
+    const bodyType = calculateBodyType(
+      latestRecord.weight,
+      profile.height,
+      age ?? 0,
+      bmi.value,
+      latestRecord.body_fat ?? 0,
+      latestRecord.muscle ?? 0
+    );
+    const bodyAge = calculateBodyAge(
+      age ?? 0,
+      bmi.value,
+      latestRecord.body_fat,
+      latestRecord.muscle,
+      latestRecord.weight
+    );
+    return { bmi, bodyType, bodyAge };
+  }, [latestRecord, profile, age]);
+
   // Year filter
   const availableYears = useMemo(() => {
     const years = [...new Set(records.map(r => new Date(r.record_date + "T00:00:00").getFullYear()))].sort((a, b) => b - a);
@@ -106,10 +128,28 @@ export default function Dashboard() {
     return records.filter(r => new Date(r.record_date + "T00:00:00").getFullYear() === selectedYear);
   }, [records, selectedYear]);
 
-  // Analytics: first vs last, last-1 vs last (use all records for analytics)
+  // Analytics: first vs last, last-1 vs last (all records)
   const first = records[records.length - 1];
   const last = records[0];
   const secondLast = records[1];
+
+  const DeltaRow = ({ item, current, previous }: { item: DeltaItem; current: HealthRecord; previous: HealthRecord }) => {
+    const delta = getMetricDelta(
+      current[item.field] as number | null,
+      previous[item.field] as number | null,
+      item.isPositiveGood
+    );
+    if (!delta) return null;
+    return (
+      <div className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
+        <span className="text-sm text-muted-foreground">{item.label}</span>
+        <div className={`flex items-center gap-1 text-sm font-semibold ${delta.isNeutral ? "text-muted-foreground" : delta.isImprovement ? "text-success" : "text-destructive"}`}>
+          {!delta.isNeutral && (delta.isImprovement ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />)}
+          {delta.isNeutral ? "Sem mudanças" : `${delta.formatted}${item.unit}`}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <AppLayout>
@@ -173,6 +213,20 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
+
+                {/* Body type & body age badges */}
+                {bodyMetrics && (
+                  <div className="flex flex-wrap justify-center sm:justify-start gap-2 mt-3">
+                    <div className="flex items-center gap-1.5 bg-primary/10 rounded-full px-3 py-1">
+                      <span className="text-xs text-primary font-medium">Tipo de Corpo:</span>
+                      <span className="text-xs font-semibold text-primary">{bodyMetrics.bodyType.type}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 bg-accent rounded-full px-3 py-1">
+                      <span className="text-xs text-accent-foreground font-medium">Idade Corporal:</span>
+                      <span className="text-xs font-semibold text-accent-foreground">{bodyMetrics.bodyAge} anos</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -191,23 +245,9 @@ export default function Dashboard() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {deltaItems.map((item) => {
-                    const delta = getMetricDelta(
-                      last[item.field] as number | null,
-                      first[item.field] as number | null,
-                      item.isPositiveGood
-                    );
-                    if (!delta) return null;
-                      return (
-                        <div key={item.field} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
-                          <span className="text-sm text-muted-foreground">{item.label}</span>
-                          <div className={`flex items-center gap-1 text-sm font-semibold ${delta.isNeutral ? "text-muted-foreground" : delta.isImprovement ? "text-success" : "text-destructive"}`}>
-                            {!delta.isNeutral && (delta.isImprovement ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />)}
-                            {delta.isNeutral ? "Sem mudanças" : `${delta.formatted}${item.unit}`}
-                          </div>
-                        </div>
-                      );
-                  })}
+                  {deltaItems.map((item) => (
+                    <DeltaRow key={item.field} item={item} current={last} previous={first} />
+                  ))}
                 </CardContent>
               </Card>
 
@@ -220,23 +260,9 @@ export default function Dashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    {deltaItems.map((item) => {
-                      const delta = getMetricDelta(
-                        last[item.field] as number | null,
-                        secondLast[item.field] as number | null,
-                        item.isPositiveGood
-                      );
-                      if (!delta) return null;
-                      return (
-                        <div key={item.field} className="flex items-center justify-between py-1.5 border-b border-border/30 last:border-0">
-                          <span className="text-sm text-muted-foreground">{item.label}</span>
-                          <div className={`flex items-center gap-1 text-sm font-semibold ${delta.isNeutral ? "text-muted-foreground" : delta.isImprovement ? "text-success" : "text-destructive"}`}>
-                            {!delta.isNeutral && (delta.isImprovement ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />)}
-                            {delta.isNeutral ? "Sem mudanças" : `${delta.formatted}${item.unit}`}
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {deltaItems.map((item) => (
+                      <DeltaRow key={item.field} item={item} current={last} previous={secondLast} />
+                    ))}
                   </CardContent>
                 </Card>
               )}
