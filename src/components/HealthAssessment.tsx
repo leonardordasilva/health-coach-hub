@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Sparkles, ThumbsUp, ThumbsDown, AlertTriangle, Lightbulb, Loader2, ChevronDown, ChevronUp, ClipboardList, History } from "lucide-react";
 import { toast } from "sonner";
 import { calculateBMI, calculateBodyAge, calculateBodyType, formatMonthYear } from "@/lib/health";
@@ -35,8 +34,8 @@ interface Assessment {
 type AssessmentType = "latest" | "general";
 
 interface Props {
-  record: HealthRecord;           // most recent record
-  allRecords: HealthRecord[];     // full history
+  record: HealthRecord;
+  allRecords: HealthRecord[];
   profile: Profile;
 }
 
@@ -75,7 +74,7 @@ const sections = [
   },
 ];
 
-// Canonical snapshot of a record's raw data fields (no derived metrics)
+// Canonical snapshots
 const recordSnapshot = (r: HealthRecord) =>
   JSON.stringify([
     r.id, r.record_date, r.weight, r.body_fat, r.water,
@@ -87,13 +86,23 @@ const snapshotGeneral = (rs: HealthRecord[]) =>
   JSON.stringify([...rs].sort((a, b) => a.id.localeCompare(b.id)).map(recordSnapshot));
 
 export default function HealthAssessment({ record, allRecords, profile }: Props) {
-  const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
-  const [assessmentType, setAssessmentType] = useState<AssessmentType | null>(null);
-  const [generatedType, setGeneratedType] = useState<AssessmentType | null>(null);
-  // Snapshots por tipo — mantidos independentemente para bloquear regeneração sem mudança
+  // Tipo atualmente exibido (null = tela de seleção)
+  const [activeType, setActiveType] = useState<AssessmentType | null>(null);
+  // Cache de avaliação e snapshot por tipo — nunca zerados ao trocar
+  const [assessments, setAssessments] = useState<Partial<Record<AssessmentType, Assessment>>>({});
   const [snapshots, setSnapshots] = useState<Partial<Record<AssessmentType, string>>>({});
+
+  const currentSnapshot = (type: AssessmentType) =>
+    type === "latest" ? snapshotLatest(record) : snapshotGeneral(allRecords);
+
+  // Dados mudaram desde a última geração deste tipo?
+  const dataChangedFor = (type: AssessmentType) => {
+    const saved = snapshots[type];
+    if (!saved) return false; // nunca gerado — não é "mudança"
+    return currentSnapshot(type) !== saved;
+  };
 
   const buildRecordPayload = (r: HealthRecord) => {
     const height = profile.height;
@@ -112,18 +121,22 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
     return { ...r, bmi, bmiClassification, bodyAge, bodyType };
   };
 
-  // Se já existe snapshot para o tipo atual, verifica se os dados mudaram
-  const hasDataChanged = (() => {
-    if (!generatedType) return false;
-    const saved = snapshots[generatedType];
-    if (!saved) return false;
-    const current = generatedType === "latest" ? snapshotLatest(record) : snapshotGeneral(allRecords);
-    return current !== saved;
-  })();
+  // Selecionar tipo: restaura cache se existir e dados não mudaram; caso contrário gera
+  const handleSelectType = async (type: AssessmentType) => {
+    const cached = assessments[type];
+    if (cached && !dataChangedFor(type)) {
+      // Restaura avaliação cacheada sem chamar a API
+      setActiveType(type);
+      setExpanded(true);
+      return;
+    }
+    await callAPI(type);
+  };
 
-  const handleGenerate = async (type: AssessmentType) => {
+  // Chama a API e salva resultado + snapshot no cache
+  const callAPI = async (type: AssessmentType) => {
     setLoading(true);
-    setAssessmentType(type);
+    setActiveType(type);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
@@ -153,24 +166,25 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
 
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Erro desconhecido");
-      setAssessment(json.assessment);
-      setGeneratedType(type);
-      // Salva snapshot por tipo — sem zerar ao trocar de tipo
-      const snap = type === "latest" ? snapshotLatest(record) : snapshotGeneral(allRecords);
-      setSnapshots(prev => ({ ...prev, [type]: snap }));
+
+      setAssessments(prev => ({ ...prev, [type]: json.assessment }));
+      setSnapshots(prev => ({ ...prev, [type]: currentSnapshot(type) }));
       setExpanded(true);
     } catch (err) {
       console.error("Assessment error:", err);
       toast.error("Erro ao gerar avaliação. Tente novamente.");
+      setActiveType(null);
     } finally {
       setLoading(false);
     }
   };
 
+  const assessment = activeType ? assessments[activeType] ?? null : null;
+  const hasDataChanged = activeType ? dataChangedFor(activeType) : false;
   const hasData = assessment && sections.some(s => (assessment[s.key]?.length ?? 0) > 0);
 
-  // Step 1: no type chosen yet — show two option cards
-  if (!assessmentType && !assessment) {
+  // Tela de seleção de tipo
+  if (!activeType) {
     return (
       <div className="space-y-3">
         <div className="flex items-center gap-2 mb-1">
@@ -180,7 +194,7 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
         <p className="text-xs text-muted-foreground">Escolha o tipo de avaliação:</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <button
-            onClick={() => handleGenerate("latest")}
+            onClick={() => handleSelectType("latest")}
             className="flex items-start gap-3 p-4 rounded-xl border border-primary/25 bg-primary/5 hover:bg-primary/10 hover:border-primary/40 transition-all text-left group"
           >
             <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0 mt-0.5 group-hover:bg-primary/25 transition-colors">
@@ -195,7 +209,7 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
           </button>
 
           <button
-            onClick={() => handleGenerate("general")}
+            onClick={() => handleSelectType("general")}
             disabled={allRecords.length < 2}
             className="flex items-start gap-3 p-4 rounded-xl border border-border/50 bg-muted/40 hover:bg-accent hover:border-border transition-all text-left group disabled:opacity-40 disabled:cursor-not-allowed"
           >
@@ -221,19 +235,19 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
     return (
       <div className="flex items-center justify-center gap-3 py-6 text-muted-foreground">
         <Loader2 className="w-5 h-5 animate-spin text-primary" />
-        <span className="text-sm">Gerando avaliação{assessmentType === "general" ? " do histórico" : ""}…</span>
+        <span className="text-sm">Gerando avaliação{activeType === "general" ? " do histórico" : ""}…</span>
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      {/* Header with type label */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-primary" />
           <p className="text-sm font-semibold text-foreground">
-            Avaliação — {generatedType === "general" ? "Histórico Geral" : `Registro de ${formatMonthYear(record.record_date)}`}
+            Avaliação — {activeType === "general" ? "Histórico Geral" : `Registro de ${formatMonthYear(record.record_date)}`}
           </p>
         </div>
         <button
@@ -276,14 +290,14 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
       {/* Footer actions */}
       <div className="flex items-center justify-between pt-1">
         <button
-          onClick={() => { setAssessment(null); setAssessmentType(null); setGeneratedType(null); setExpanded(false); }}
+          onClick={() => setActiveType(null)}
           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
         >
           ← Trocar tipo
         </button>
         {hasDataChanged ? (
           <button
-            onClick={() => generatedType && handleGenerate(generatedType)}
+            onClick={() => callAPI(activeType!)}
             disabled={loading}
             className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 font-medium"
           >
