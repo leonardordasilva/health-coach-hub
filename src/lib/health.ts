@@ -126,9 +126,8 @@ export function getMetricDelta(
 ): { delta: number; isImprovement: boolean; isNeutral: boolean; formatted: string } | null {
   if (current == null || previous == null) return null;
   const delta = current - previous;
-  if (delta === 0) return null;
-  const isNeutral = false;
-  const isImprovement = isPositiveGood ? delta > 0 : delta < 0;
+  const isNeutral = delta === 0;
+  const isImprovement = isNeutral ? false : isPositiveGood ? delta > 0 : delta < 0;
   const sign = delta > 0 ? "+" : "";
   return {
     delta,
