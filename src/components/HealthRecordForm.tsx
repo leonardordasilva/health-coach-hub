@@ -50,17 +50,30 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
     if (!user) return;
     setSaving(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const payload = record?.id ? { ...form, id: record.id } : form;
-      const { error } = await supabase.functions.invoke("health-records-write", { body: payload });
-      if (error) {
-        const status = (error as any).context?.status;
-        const message = (error as any).message ?? "";
-        if (status === 409 || message.includes("409")) {
+
+      const response = await fetch(
+        `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/health-records-write`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${session?.access_token}`,
+            "Content-Type": "application/json",
+            "apikey": import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 409) {
           toast.error("Já existe um registro para esta data. Escolha outra data ou edite o registro existente.");
           return;
         }
-        throw error;
+        throw new Error(`Erro do servidor: ${response.status}`);
       }
+
       toast.success(record?.id ? "Registro atualizado!" : "Registro criado!");
       onSaved();
     } catch (err: unknown) {
