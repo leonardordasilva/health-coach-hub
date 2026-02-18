@@ -57,7 +57,12 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
       onSaved();
     } catch (err: unknown) {
       console.error("Health record save error:", err);
-      toast.error("Erro ao salvar. Tente novamente.");
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("health_records_user_date_unique") || msg.includes("unique") || msg.includes("duplicate")) {
+        toast.error("Já existe um registro para esta data. Escolha outra data ou edite o registro existente.");
+      } else {
+        toast.error("Erro ao salvar. Tente novamente.");
+      }
     } finally {
       setSaving(false);
     }

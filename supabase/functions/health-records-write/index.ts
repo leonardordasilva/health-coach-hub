@@ -104,9 +104,14 @@ Deno.serve(async (req) => {
     });
   } catch (err: unknown) {
     console.error("health-records-write error:", err);
-    return new Response(JSON.stringify({ error: "An error occurred. Please try again." }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const msg = err instanceof Error ? err.message : String(err);
+    const isDuplicate = msg.includes("health_records_user_date_unique") || msg.includes("unique") || msg.includes("duplicate");
+    return new Response(
+      JSON.stringify({ error: isDuplicate ? "health_records_user_date_unique" : "An error occurred. Please try again." }),
+      {
+        status: isDuplicate ? 409 : 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });
