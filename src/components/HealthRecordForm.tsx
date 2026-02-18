@@ -2,8 +2,8 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DecimalInput } from "@/components/ui/decimal-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { ClipboardList } from "lucide-react";
@@ -31,8 +31,12 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
   });
 
   const setField = (field: keyof typeof form, value: string) => {
+    if (field === "record_date") {
+      setForm((prev) => ({ ...prev, [field]: value }));
+      return;
+    }
     const num = value === "" ? null : parseFloat(value);
-    setForm((prev) => ({ ...prev, [field]: num ?? (field === "record_date" ? value : null) }));
+    setForm((prev) => ({ ...prev, [field]: num }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,7 +85,7 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="record_date">Data do Registro (Mês/Ano) *</Label>
-            <Input
+            <input
               id="record_date"
               type="month"
               value={monthValue}
@@ -89,6 +93,7 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
                 setForm((p) => ({ ...p, record_date: e.target.value ? e.target.value + "-01" : "" }))
               }
               required
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -97,13 +102,12 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
                 <Label htmlFor={f.key} className="text-sm">
                   {f.label} {f.unit ? `(${f.unit})` : ""} {f.required ? "*" : ""}
                 </Label>
-                <Input
+                <DecimalInput
                   id={f.key}
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  decimals={2}
+                  min={0}
                   value={form[f.key] !== null && form[f.key] !== undefined ? String(form[f.key]) : ""}
-                  onChange={(e) => setField(f.key, e.target.value)}
+                  onChange={(v) => setField(f.key, v)}
                   required={f.required}
                   placeholder="—"
                   className="h-9"
