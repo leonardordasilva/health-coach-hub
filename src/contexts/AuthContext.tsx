@@ -21,6 +21,7 @@ interface AuthContextType {
   profile: Profile | null;
   loading: boolean;
   profileLoading: boolean;
+  isProfileComplete: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -126,8 +127,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (user) await fetchProfile(user.id);
   };
 
+  // Profile is considered complete when name and birth_date are filled
+  const isProfileComplete = !!(profile?.name && profile?.birth_date);
+
   return (
-    <AuthContext.Provider value={{ user, session, profile, loading, profileLoading, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, session, profile, loading, profileLoading, isProfileComplete, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

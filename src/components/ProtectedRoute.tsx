@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -16,7 +16,8 @@ const Spinner = () => (
 );
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { user, profile, loading, profileLoading } = useAuth();
+  const { user, profile, loading, profileLoading, isProfileComplete } = useAuth();
+  const location = useLocation();
 
   // Wait for auth session + initial profile to resolve
   if (loading || profileLoading) return <Spinner />;
@@ -25,8 +26,18 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   if (!user) return <Navigate to="/login" replace />;
 
   // Force password change if default
-  if (profile?.is_default_password && window.location.pathname !== "/trocar-senha") {
+  if (profile?.is_default_password && location.pathname !== "/trocar-senha") {
     return <Navigate to="/trocar-senha" replace />;
+  }
+
+  // Force profile completion for regular users (after password change)
+  if (
+    profile?.role === "user" &&
+    !profile?.is_default_password &&
+    !isProfileComplete &&
+    location.pathname !== "/perfil"
+  ) {
+    return <Navigate to="/perfil" replace />;
   }
 
   // Role check
