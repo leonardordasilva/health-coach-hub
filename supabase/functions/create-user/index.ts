@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "npm:zod@3";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -66,7 +67,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { email, password, birth_date, weight, height } = await req.json();
+    const CreateUserSchema = z.object({
+      email: z.string().email().max(255),
+      password: z.string().min(8).max(100).optional(),
+      birth_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+      weight: z.number().min(20).max(500).optional().nullable(),
+      height: z.number().min(50).max(300).optional().nullable(),
+    });
+
+    let validated: z.infer<typeof CreateUserSchema>;
+    try {
+      const body = await req.json();
+      validated = CreateUserSchema.parse(body);
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid request data." }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { email, password, birth_date, weight, height } = validated;
     const tempPassword = password || generatePassword();
 
     // Create user in Auth

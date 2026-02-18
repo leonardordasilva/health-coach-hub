@@ -86,8 +86,9 @@ export default function AdminPanel() {
       setShowCreateModal(false);
       setForm({ email: "", birth_date: "", weight: "", height: "" });
       fetchUsers();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao criar usuário.");
+    } catch (err: unknown) {
+      console.error("Create user error:", err);
+      toast.error("Erro ao criar usuário. Tente novamente.");
     } finally {
       setCreating(false);
     }
@@ -101,8 +102,9 @@ export default function AdminPanel() {
       if (error) throw error;
       toast.success("Nova senha enviada por e-mail.");
       fetchUsers();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao resetar senha.");
+    } catch (err: unknown) {
+      console.error("Reset password error:", err);
+      toast.error("Erro ao resetar senha. Tente novamente.");
     }
   };
 
@@ -117,8 +119,9 @@ export default function AdminPanel() {
       setDeleteUserId(null);
       setShowDetailModal(false);
       fetchUsers();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao excluir usuário.");
+    } catch (err: unknown) {
+      console.error("Delete user error:", err);
+      toast.error("Erro ao excluir usuário. Tente novamente.");
     }
   };
 

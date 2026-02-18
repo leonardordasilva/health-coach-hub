@@ -63,8 +63,9 @@ export default function HealthRecordForm({ record, onClose, onSaved }: Props) {
       if (error) throw error;
       toast.success(record?.id ? "Registro atualizado!" : "Registro criado!");
       onSaved();
-    } catch (err: any) {
-      toast.error(err.message || "Erro ao salvar.");
+    } catch (err: unknown) {
+      console.error("Health record save error:", err);
+      toast.error("Erro ao salvar. Tente novamente.");
     } finally {
       setSaving(false);
     }
