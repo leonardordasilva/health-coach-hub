@@ -4,7 +4,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ClipboardList, Pencil, Trash2, Eye, Calendar } from "lucide-react";
-import { formatMonthYear } from "@/lib/health";
+import { formatDate } from "@/lib/health";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { HealthRecord } from "@/types/health";
@@ -69,7 +69,7 @@ export default function HealthRecordsList({ records, loading, onEdit, onDetail, 
                     <Calendar className="w-4 h-4 text-accent-foreground" />
                   </div>
                   <div>
-                    <p className="font-semibold text-sm text-foreground">{formatMonthYear(record.record_date)}</p>
+                    <p className="font-semibold text-sm text-foreground">{formatDate(record.record_date)}</p>
                     {i === 0 && <Badge variant="outline" className="text-xs text-primary border-primary/30 bg-primary-light mt-0.5">Mais recente</Badge>}
                   </div>
                 </div>

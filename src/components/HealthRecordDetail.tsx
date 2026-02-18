@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { calculateBMI, calculateBodyType, calculateBodyAge, calculateAge, formatMonthYear } from "@/lib/health";
+import { calculateBMI, calculateBodyType, calculateBodyAge, calculateAge, formatDate } from "@/lib/health";
 import { Activity, Droplets, Flame, Heart, Scale, Dumbbell, Bone, Percent, Target, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import BodyTypeIcon from "@/components/BodyTypeIcon";
 
@@ -72,7 +72,7 @@ export default function HealthRecordDetail({ record, profile, onClose }: Props) 
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Target className="w-5 h-5 text-primary" />
-            Detalhes — {formatMonthYear(record.record_date)}
+            Detalhes — {formatDate(record.record_date)}
           </DialogTitle>
         </DialogHeader>
 
