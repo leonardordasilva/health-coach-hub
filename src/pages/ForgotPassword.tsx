@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { toast } from "sonner";
 import { Heart, ArrowLeft, Mail } from "lucide-react";
 
 export default function ForgotPassword() {
@@ -18,18 +17,13 @@ export default function ForgotPassword() {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("reset-password", {
+      await supabase.functions.invoke("reset-password", {
         body: { email },
       });
-
-      if (error) throw error;
-      setSent(true);
-    } catch (err) {
-      console.error(err);
-      // Always show neutral message
+    } catch {
+      // Silent — always show neutral message
     } finally {
       setLoading(false);
-      // Always show neutral message to prevent user enumeration
       setSent(true);
     }
   };
@@ -53,7 +47,9 @@ export default function ForgotPassword() {
           <CardHeader className="space-y-1 pb-4">
             <CardTitle className="text-xl font-semibold">Recuperar senha</CardTitle>
             <CardDescription>
-              Informe seu e-mail para receber uma nova senha temporária.
+              {sent
+                ? "Verifique seu e-mail."
+                : "Informe seu e-mail e enviaremos um link para redefinição de senha."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -63,7 +59,7 @@ export default function ForgotPassword() {
                   <Mail className="w-7 h-7 text-success" />
                 </div>
                 <p className="text-center text-sm text-muted-foreground">
-                  Se este e-mail estiver cadastrado, você receberá as instruções em breve.
+                  Se este e-mail estiver cadastrado, você receberá um link para gerar uma nova senha temporária. Clique no link do e-mail para continuar.
                 </p>
               </div>
             ) : (
@@ -85,7 +81,7 @@ export default function ForgotPassword() {
                   className="w-full h-11 gradient-hero text-primary-foreground font-semibold shadow-health hover:opacity-90 transition-opacity"
                   disabled={loading}
                 >
-                  {loading ? "Enviando..." : "Enviar instruções"}
+                  {loading ? "Enviando..." : "Enviar link de redefinição"}
                 </Button>
               </form>
             )}

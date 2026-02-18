@@ -7,6 +7,8 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
+import ConfirmReset from "./pages/ConfirmReset";
+
 import ChangePassword from "./pages/ChangePassword";
 import AdminPanel from "./pages/AdminPanel";
 import Dashboard from "./pages/Dashboard";
@@ -46,6 +48,7 @@ function AppRoutes() {
       <Route path="/" element={<AuthRedirect />} />
       <Route path="/login" element={<Login />} />
       <Route path="/esqueci-senha" element={<ForgotPassword />} />
+      <Route path="/confirmar-reset" element={<ConfirmReset />} />
       <Route
         path="/trocar-senha"
         element={
