@@ -1,55 +1,34 @@
 
-# Landing Page para o Health Coach
 
-## Objetivo
+# Redirecionar rota raiz para a Landing Page
 
-Criar uma nova rota `/landing` como pagina inicial publica da aplicacao, apresentando os recursos do Health Coach com visual atrativo e botoes para login/criar conta.
+## Problema
 
-## Estrutura da pagina
+Atualmente, ao acessar a URL publicada (`/`), o componente `AuthRedirect` verifica se o usuario esta autenticado. Se nao estiver, redireciona para `/login`. Isso faz com que visitantes nunca vejam a landing page.
 
-A landing page tera as seguintes secoes:
+## Solucao
 
-1. **Hero** — titulo principal, subtitulo descritivo e dois botoes (Entrar / Criar conta) com o logo do Health Coach
-2. **Recursos principais** — grid com cards apresentando as funcionalidades:
-   - Registro de bioimpedancia (peso, gordura, musculo, agua, etc.)
-   - Calculos automaticos (IMC, tipo de corpo, idade corporal)
-   - Graficos de evolucao com filtros por metrica e ano
-   - Avaliacao de saude por IA (Gemini)
-   - Metas de peso e gordura corporal com progresso visual
-   - Perfil completo com foto e dados pessoais
-3. **Como funciona** — 3 passos simples (Crie sua conta, Registre seus dados, Acompanhe sua evolucao)
-4. **CTA final** — chamada para acao com botao de criar conta
+Alterar o `AuthRedirect` para que, quando o usuario nao estiver autenticado, redirecione para `/landing` em vez de `/login`.
 
-## Navegacao
+Usuarios autenticados continuarao sendo redirecionados normalmente (admin para `/admin`, user para `/dashboard`, senha padrao para `/trocar-senha`).
 
-- A rota `/` (AuthRedirect) sera mantida como esta — redireciona usuarios autenticados
-- A landing page sera acessivel em `/landing`
-- O login tera um link "Saiba mais" apontando para `/landing`
-- A landing page tera botoes que direcionam para `/login` (com view de login ou registro)
+## Arquivo a modificar
 
-## Arquivos a criar/modificar
+- `src/App.tsx` -- linha 37: trocar `Navigate to="/login"` por `Navigate to="/landing"`
 
-### Criar
-- `src/pages/Landing.tsx` — componente completo da landing page
+## Mudanca
 
-### Modificar
-- `src/App.tsx` — adicionar rota `/landing` (publica, sem ProtectedRoute)
-- `src/pages/Login.tsx` — adicionar link discreto "Saiba mais sobre o Health Coach" apontando para `/landing`
+```typescript
+// Antes
+if (!user) return <Navigate to="/login" replace />;
 
-## Detalhes tecnicos
+// Depois
+if (!user) return <Navigate to="/landing" replace />;
+```
 
-- Usara os mesmos utilitarios CSS existentes (`gradient-hero`, `text-gradient`, `shadow-health`)
-- Icones do Lucide ja instalado (Heart, Activity, Target, TrendingUp, Brain, User, etc.)
-- Framer Motion para animacoes sutis de entrada nas secoes
-- Componentes shadcn/ui existentes (Button, Card)
-- Layout totalmente responsivo (mobile-first)
-- Sem necessidade de autenticacao ou banco de dados
-- Sem novas dependencias
+## Fluxo resultante
 
-## Visual
+- Visitante acessa `/` --> ve a landing page
+- Na landing page, clica em "Entrar" ou "Criar conta" --> vai para `/login`
+- Usuario autenticado acessa `/` --> redirecionado para `/dashboard` ou `/admin`
 
-- Fundo com decoracoes circulares (mesmo padrao da tela de login)
-- Cards com `gradient-card` e `shadow-health`
-- Botoes primarios com `gradient-hero`
-- Paleta emerald/sky blue existente
-- Header fixo com logo e botao de login
