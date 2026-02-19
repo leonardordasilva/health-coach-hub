@@ -14,6 +14,7 @@ import AdminPanel from "./pages/AdminPanel";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import Landing from "./pages/Landing";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +47,7 @@ function AppRoutes() {
   return (
     <Routes>
       <Route path="/" element={<AuthRedirect />} />
+      <Route path="/landing" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/esqueci-senha" element={<ForgotPassword />} />
       <Route path="/confirmar-reset" element={<ConfirmReset />} />
