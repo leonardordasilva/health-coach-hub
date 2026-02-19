@@ -66,22 +66,12 @@ export default function Dashboard() {
   const [detailRecord, setDetailRecord] = useState<HealthRecord | null>(null);
   const [selectedChartMetric, setSelectedChartMetric] = useState<ChartMetric>(chartMetrics[0]);
 
-  const [analyticsOpen, setAnalyticsOpen] = useState(() => {
-    try { return localStorage.getItem("dashboard_analyticsOpen") !== "false"; } catch { return true; }
-  });
-  const [chartOpen, setChartOpen] = useState(() => {
-    try { return localStorage.getItem("dashboard_chartOpen") !== "false"; } catch { return true; }
-  });
-  const [recordsOpen, setRecordsOpen] = useState(() => {
-    try { return localStorage.getItem("dashboard_recordsOpen") !== "false"; } catch { return true; }
-  });
+  const [analyticsOpen, setAnalyticsOpen] = useState(true);
+  const [chartOpen, setChartOpen] = useState(true);
+  const [recordsOpen, setRecordsOpen] = useState(true);
 
-  const toggleSection = (key: string, setter: React.Dispatch<React.SetStateAction<boolean>>) => {
-    setter(prev => {
-      const next = !prev;
-      try { localStorage.setItem(key, String(next)); } catch { /* ignore */ }
-      return next;
-    });
+  const toggleSection = (_key: string, setter: React.Dispatch<React.SetStateAction<boolean>>) => {
+    setter(prev => !prev);
   };
 
   const { data: records = [], isLoading: loading } = useQuery({
