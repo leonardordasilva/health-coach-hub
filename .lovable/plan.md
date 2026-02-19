@@ -1,63 +1,69 @@
 
-# Traduzir mensagens de erro do Supabase para pt-BR
+# Criar README.md para o GitHub
 
-## Problema identificado
+## Objetivo
 
-Na tela `/trocar-senha`, quando o Supabase rejeita uma senha por ser considerada fraca ou comum, ele retorna a mensagem em inglês:
+Substituir o README genérico atual por um documento profissional que apresente a aplicação Health Coach de forma clara e atrativa para o GitHub.
 
-> "Password is known to be weak and easy to guess, please choose a different one."
+## Conteúdo do novo README
 
-O código atual (linha 77) exibe o `err.message` diretamente, sem tradução:
-```typescript
-const message = err instanceof Error ? err.message : "Erro ao alterar senha.";
-toast.error(message);
-```
+Com base na análise completa do código, o README cobrirá:
 
-## Solução
+### Seções planejadas
 
-Criar um mapeamento de erros conhecidos do Supabase Auth para suas equivalentes em pt-BR. A função de tradução verifica se a mensagem contém termos-chave e retorna a tradução adequada, com fallback genérico em português.
-
-### Mapeamento de erros a cobrir
-
-| Mensagem original (Supabase) | Tradução pt-BR |
-|---|---|
-| "Password is known to be weak and easy to guess..." | "A senha escolhida é muito comum ou fraca. Por favor, escolha uma senha diferente." |
-| "Password should be at least..." | "A senha deve ter pelo menos 8 caracteres." |
-| "New password should be different from the old password." | "A nova senha deve ser diferente da senha atual." |
-| Qualquer outro erro | "Erro ao alterar senha. Tente novamente." |
+1. **Badge de tecnologias** — React, TypeScript, Tailwind, Vite
+2. **Sobre o projeto** — descrição clara da aplicação: plataforma de acompanhamento de composição corporal (bioimpedância) com avaliação de saúde por IA
+3. **Funcionalidades principais** divididas por perfil:
+   - Aluno: dashboard de bioimpedância, histórico de registros, avaliação de saúde com IA, metas de peso e gordura corporal, perfil com foto
+   - Admin: painel de usuários, cadastro/exclusão/reset de senha, gráfico de crescimento de usuários
+4. **Stack tecnológica** — frontend e backend
+5. **Arquitetura** — descrição das funções backend (create-user, self-register, reset-password, confirm-password-reset, health-records-read/write, health-assessment)
+6. **Como executar localmente** — clone, install, dev
+7. **Variáveis de ambiente** — quais são necessárias
+8. **Estrutura de pastas** — overview do projeto
+9. **Capturas de tela** — placeholder visual descritivo
+10. **Licença**
 
 ## Arquivo a modificar
 
-- `src/pages/ChangePassword.tsx` — apenas o bloco `catch` (linha 76-79), adicionando uma função auxiliar `translateAuthError()` antes do componente.
+- `README.md` — substituição completa do conteúdo atual (que é o template padrão do Lovable)
 
-## Mudança técnica
+## Detalhes do conteúdo a incluir
 
-```typescript
-// Função auxiliar para traduzir erros do Supabase Auth
-function translateAuthError(message: string): string {
-  const lower = message.toLowerCase();
-  if (lower.includes("weak") || lower.includes("easy to guess") || lower.includes("known to be")) {
-    return "A senha escolhida é muito comum ou fraca. Por favor, escolha uma senha diferente.";
-  }
-  if (lower.includes("at least")) {
-    return "A senha deve ter pelo menos 8 caracteres.";
-  }
-  if (lower.includes("different from the old password")) {
-    return "A nova senha deve ser diferente da senha atual.";
-  }
-  return "Erro ao alterar senha. Tente novamente.";
-}
+### Funcionalidades mapeadas no código
 
-// No catch:
-} catch (err: unknown) {
-  const raw = err instanceof Error ? err.message : "";
-  toast.error(translateAuthError(raw));
-}
-```
+**Aluno (role: user)**
+- Login com e-mail e senha
+- Cadastro por auto-registro (senha temporária por e-mail via Brevo)
+- Troca de senha obrigatória no primeiro acesso
+- Perfil: nome, data de nascimento, peso, altura, sexo biológico, foto de avatar
+- Metas de peso e percentual de gordura com barras de progresso
+- Registros de bioimpedância: peso, gordura corporal, água, músculo, proteína, gordura visceral, metabolismo basal, massa óssea
+- Cálculos automáticos: IMC, tipo de corpo, idade corporal
+- Gráficos de evolução com seleção de métrica e filtro por ano
+- Painel analítico: evolução total e evolução recente
+- Avaliação de saúde por IA (Gemini 2.5 Flash) — registro atual ou histórico geral
+- Cache de avaliações por usuário no banco
+- Alerta de inatividade (> 30 dias sem registro)
 
-## O que não muda
+**Admin (role: admin)**
+- Painel de gerenciamento de usuários
+- Criação de usuário com envio de senha temporária por e-mail
+- Reset de senha
+- Exclusão de usuário
+- Gráfico de crescimento mensal (últimos 6 meses)
+- Filtro por status de senha padrão
+- Busca por nome ou e-mail
 
-- Layout e visual da tela
-- Lógica de força de senha
-- Navegação pós-sucesso
-- Toda a integração com o backend
+### Stack tecnológica
+
+**Frontend**: React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, Framer Motion, Recharts, TanStack Query, React Router DOM, React Hook Form + Zod
+
+**Backend (Lovable Cloud / Supabase)**: PostgreSQL, Supabase Auth, Storage (avatares), Edge Functions (Deno), IA via Lovable AI Gateway (Gemini 2.5 Flash), e-mail via Brevo
+
+## Estilo
+
+- README em português do Brasil (idioma da aplicação)
+- Badges no topo com shields.io
+- Seções bem organizadas com emojis e tabelas
+- Tom profissional mas acessível
