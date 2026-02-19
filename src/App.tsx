@@ -34,7 +34,7 @@ function AuthRedirect() {
   if (loading || profileLoading) return <Spinner />;
 
   // No user → go to login
-  if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/landing" replace />;
 
   // Profile loaded — redirect based on role
   if (profile?.is_default_password) return <Navigate to="/trocar-senha" replace />;
