@@ -1,132 +1,109 @@
-# Análise e Sugestões de Melhoria — Health Coach
+# Análise e Plano de Melhorias — Health Coach
 
-## Visão Geral da Aplicação
+## Estado Atual da Aplicação
 
-O Health Coach é um sistema de acompanhamento de saúde com:
-
-- Autenticação com senhas temporárias, troca obrigatória e reset via e-mail
-- Dashboard pessoal com gráficos de evolução, painel analítico e avaliação por IA
-- Registros de saúde mensais com dados de bioimpedância (peso, gordura, músculo, etc.)
-- Painel administrativo para gerenciar usuários
-- Dados sensíveis criptografados (AES-GCM) na persistência
+O Health Coach é uma aplicação robusta de acompanhamento de saúde com autenticação segura, criptografia AES-GCM dos dados, avaliação por IA, dashboard com gráficos e painel administrativo. A análise do código revela pontos de excelência e oportunidades concretas de melhoria.
 
 ---
 
-## Melhorias Identificadas
+## O que já está bem implementado
 
-### 1. Experiência do Usuário (UX)
-
-**A. Indicador de força de senha na tela de troca**  
-A tela `ChangePassword.tsx` só valida o mínimo de 8 caracteres. Não há feedback visual de segurança. Uma barra de força (fraca/média/forte) com critérios visuais (maiúscula, número, símbolo) reduz rejeições e orienta o usuário sem mensagens de erro.
-
-**C. Contador de registros na seção de Registros de Saúde**
-O cabeçalho da seção não informa quantos registros existem. Adicionar `(N)` ou um badge ao lado do título dá contexto imediato.
-
-**D. Animação de fade-in nos cards de registros**
-Os cards já têm `animationDelay`, mas com `AnimatePresence` e `motion.div` individualmente poderiam ter entrada mais fluida ao filtrar por ano.
-
-**E. Toast de confirmação ao excluir registro**
-Já existe, mas não há opção de desfazer. Pequena melhoria de UX.
+- Criptografia AES-GCM dos dados de bioimpedância nas Edge Functions
+- Fluxo de senha padrão + troca obrigatória + reset via e-mail bem implementado
+- TanStack Query já integrado no Dashboard para cache e revalidação
+- Hook `useAvatarUpload` centralizado e reutilizado em `Dashboard` e `Profile`
+- Interface `HealthRecord` centralizada em `src/types/health.ts`
+- Animações com `framer-motion` nos cards e seções colapsáveis
+- Rate limiting na função `reset-password`
+- Alerta de inatividade (> 30 dias sem registro) no Dashboard
+- Barra de força de senha já implementada no `ChangePassword`
+- Indicador de progresso de metas no Dashboard
 
 ---
 
-### 2. Funcionalidades Faltantes
+## Melhorias Identificadas e Priorizadas
 
-**B. Dashboard admin com métricas agregadas**  
-Além dos 3 cards (total, senha padrão, este mês), seria útil ter um gráfico de crescimento de usuários ao longo do tempo ou indicador de usuários com mais de N registros.
+### PRIORIDADE ALTA — Bugs e Problemas Funcionais
 
-**D. Notificação de novo registro sugerido**
-Se o usuário não adiciona registro há mais de 30 dias, um aviso no dashboard ("Seu último registro foi em X — que tal atualizar?") encoraja o uso contínuo.
+#### 1. Erro recorrente no salvamento de registros (o problema atual)
 
-**E. Meta de peso/gordura no perfil**
-Permitir ao usuário definir uma meta (ex: peso alvo) e exibir no dashboard o progresso atual em relação a ela — com percentual de avanço.
+O `HealthRecordForm.tsx` mistura duas estratégias de validação de duplicatas: faz uma consulta prévia via `supabase.from("health_records")` **E** ainda mantém o código para lidar com erro 409 da Edge Function. O problema raiz é que o `supabase.functions.invoke` lança uma exceção para qualquer resposta não-2xx, consumindo o corpo da resposta antes que o código de tratamento possa lê-lo.
 
----
+**Solução recomendada**: Manter apenas a pré-validação no cliente (que já funciona) e remover completamente a dependência do tratamento do erro 409, ou migrar completamente para `fetch` nativo com controle total da resposta.
 
-### 3. Qualidade de Código e Manutenibilidade
+#### 2. AdminPanel usa `useEffect` + `useState` ao invés de TanStack Query
 
-**A. Interface `HealthRecord` duplicada em 4 arquivos**
-`Dashboard.tsx`, `HealthRecordForm.tsx`, `HealthRecordsList.tsx` e `HealthAssessment.tsx` definem localmente a mesma interface `HealthRecord`. Mover para `src/types/health.ts` e importar de lá elimina inconsistências futuras.
+`fetchUsers()` em `AdminPanel.tsx` é chamado manualmente via `useEffect`. O restante do app já usa `useQuery`. Isso gera inconsistência e falta de cache/loading states padronizados.
 
-**B. Lógica de avatar duplicada**
-O upload de avatar existe tanto em `Dashboard.tsx` quanto em `Profile.tsx` com código idêntico. Extrair para um hook `useAvatarUpload()` ou componente `AvatarUpload` centraliza a lógica.
-
-**C. Chamadas fetch brutas para Edge Functions**
-`Dashboard.tsx` e `HealthAssessment.tsx` fazem `fetch` manual com construção de URL via `import.meta.env.VITE_SUPABASE_PROJECT_ID`. O SDK já tem `supabase.functions.invoke()` que é mais seguro, lida com headers automaticamente e não expõe a URL diretamente no bundle.
-
-**D. `generatePassword()` definida em 3 lugares**
-Em `src/lib/health.ts`, `supabase/functions/create-user/index.ts` e `supabase/functions/confirm-password-reset/index.ts`. No frontend é desnecessária (nunca deve gerar senha no cliente). Nas Edge Functions, extrair para um módulo compartilhado.
-
-**E. `AdminPanel.tsx` gera senha no cliente**
-Em `handleCreate`, chama `generatePassword()` no frontend e envia ao Edge Function. A senha deveria ser gerada apenas no servidor (já acontece no `create-user`, mas o cliente também gera uma e envia). O Edge Function deve ignorar o parâmetro `password` e sempre gerar internamente — como o `self-register` faz corretamente.
+**Solução**: Migrar `fetchUsers` para `useQuery({ queryKey: ["admin-users"], queryFn: fetchUsers })` e `fetchUsers` como `queryClient.invalidateQueries`.
 
 ---
 
-### 4. Segurança
+### PRIORIDADE MÉDIA — UX e Funcionalidades
 
-**A. CORS com wildcard `*` em todas as Edge Functions**
-Todas as funções retornam `Access-Control-Allow-Origin: *`. Para produção, restringir ao domínio real da aplicação (`APP_URL`) reduz a superfície de ataque. Funções como `create-user` e `delete-user` são especialmente sensíveis.
+#### 5. Busca de texto no AdminPanel também funciona por nome, mas o placeholder diz apenas "e-mail"
 
-**B. `APP_URL` hardcoded no `reset-password**`
-A URL de fallback `https://id-preview--...lovable.app` está hardcoded no código (linha 97). Se o domínio mudar, o link nos e-mails quebra silenciosamente. Usar exclusivamente a variável de ambiente `APP_URL`.
+O código já filtra por nome e por e-mail (`u.email... || u.name...`), mas o `placeholder` do input diz apenas "Buscar por e-mail...". Pequena inconsistência de UX.
 
-**C. Ausência de rate-limit no `self-register` e `reset-password**`
-Qualquer pessoa pode chamar esses endpoints ilimitadamente, causando spam de e-mails ou enumeração de usuários (apesar da resposta neutra). Implementar throttle por IP ou por e-mail com tabela de cooldown no banco.
+**Solução**: Atualizar placeholder para "Buscar por nome ou e-mail...".
 
-**D. Token de reset sem índice no banco**
-A tabela `password_reset_tokens` faz buscas por `token` (coluna `text` sem índice declarado). Com volume alto, isso pode ser lento. Adicionar `CREATE INDEX ON password_reset_tokens(token)`.
+#### 6. Métricas de administrador incompletas
 
----
+O card "Total com registros" em `AdminPanel.tsx` tem um comentário `// placeholder — real count would need a join query` e usa `users.length` como valor incorreto. O dado que está sendo mostrado é o total de usuários, não o total com registros.
 
-### 5. Performance
-
-**A. Busca de registros via fetch manual sem cache**
-`fetchRecords()` é chamado diretamente e não usa TanStack Query (que já está instalado). Migrar para `useQuery` daria cache automático, revalidação em foco, loading states padronizados e evita chamadas duplicadas.
-
-**B. `useMemo` desnecessário em `chartData` por não memoizar corretamente**
-`chartData` depende de `records` e `selectedChartMetric`, mas `records` é um array re-criado a cada render. Com TanStack Query isso seria natural, mas sem ele convém garantir referências estáveis.
-
-**C. Avatar sem lazy loading**
-A imagem do avatar não tem `loading="lazy"`. Irrelevante com uma imagem, mas boa prática.
+**Solução**: Remover o card enganoso ou implementar a query correta que conta usuários com pelo menos 1 registro via a Edge Function ou uma query direta ao banco.
 
 ---
 
-## Priorização Sugerida
+### PRIORIDADE BAIXA — Segurança e Manutenibilidade
+
+#### 7. CORS wildcard (`*`) em todas as Edge Functions
+
+Todas as 8 Edge Functions retornam `Access-Control-Allow-Origin: *`. Para um ambiente de produção, funções sensíveis como `create-user`, `delete-user` e `health-records-write` deveriam restringir ao domínio da aplicação.
+
+**Solução**: Usar `Deno.env.get("APP_URL")` como valor do header `Access-Control-Allow-Origin` nas funções administrativas.
+
+#### 8. Índice ausente na tabela `password_reset_tokens`
+
+A coluna `token` em `password_reset_tokens` é pesquisada com `WHERE token = ?` sem índice declarado. Com volume alto, isso pode ser lento.
+
+**Solução**: `CREATE INDEX ON password_reset_tokens(token)` via migration.
+
+#### 9. `encrypt` / `decrypt` duplicados entre `health-records-write` e `health-records-read`
+
+As funções `getKey`, `encrypt` e `decrypt` estão copiadas em dois arquivos de Edge Function. Se a lógica de criptografia precisar mudar, exige atualização em dois lugares.
+
+**Solução**: Extrair para um módulo compartilhado em `supabase/functions/_shared/crypto.ts`.
+
+---
+
+## Resumo das Melhorias por Esforço
 
 ```text
-ALTA PRIORIDADE (impacto direto na qualidade e segurança)
-├── 3A - Centralizar interface HealthRecord em src/types/health.ts
-├── 3B - Extrair lógica de avatar para hook/componente reutilizável
-├── 3E - Remover geração de senha no AdminPanel (cliente)
-├── 4B - Remover APP_URL hardcoded no reset-password
-└── 5A - Migrar fetch de registros para TanStack Query (useQuery)
+ESFORÇO BAIXO (1 arquivo, < 20 linhas)
+├── 5. Corrigir placeholder do campo de busca no AdminPanel
+├── 6. Remover/corrigir card "Total com registros" enganoso
+└── 8. Adicionar índice em password_reset_tokens.token
 
-MÉDIA PRIORIDADE (melhoria de UX e funcionalidade)
-├── 1A - Indicador de força de senha
-├── 1B - Persistir estado de colapso no localStorage
-├── 1C - Contador de registros no cabeçalho da seção
-├── 2A - Admin: visualizar registros do usuário selecionado
-└── 2D - Aviso de registro desatualizado (>30 dias)
+ESFORÇO MÉDIO (2-3 arquivos)
+├── 1. Resolver definitivamente o erro de salvamento de registro duplicado
+├── 2. Migrar AdminPanel para TanStack Query
+├── 4. Persistir estado de seções colapsáveis no localStorage
+└── 9. Extrair crypto helpers para módulo compartilhado
 
-BAIXA PRIORIDADE (nice-to-have)
-├── 2C - Exportação em JSON
-├── 2E - Meta de peso/gordura no perfil
-├── 4A - Restringir CORS ao domínio de produção
-├── 4C - Rate-limit nos endpoints públicos
-└── 4D - Índice na tabela password_reset_tokens
+ESFORÇO ALTO (novo componente + Edge Function)
+├── 3. Admin visualizar registros de saúde do usuário selecionado
+└── 7. Restringir CORS ao domínio de produção
 ```
 
 ---
 
-## O que NÃO está errado
+## Qual melhoria você quer implementar?
 
-- Fluxo de autenticação com senha padrão + troca obrigatória: bem implementado
-- Criptografia AES-GCM dos dados de saúde: arquitetura correta
-- Cache da avaliação IA no banco com snapshot de dados: elegante
-- Animações framer-motion nos collapses: funcionam bem
-- RLS nas tabelas sensíveis: adequado
-- Separação de responsabilidades entre Edge Functions: boa
+As melhorias mais impactantes para implementar agora seriam:
 
----
+**Opção A — Corrigir o bug recorrente de salvamento** (item 1): resolver de vez o conflito entre pré-validação no cliente e tratamento de erro 409 na Edge Function.
 
-Qual dessas melhorias você gostaria de implementar primeiro?
+**Opção B — Admin ver registros do usuário** (item 3): funcionalidade de alto valor para um coach de saúde que precisa acompanhar seus clientes.
+
+**Opção C — Múltiplas melhorias pequenas** (itens 2, 4, 5, 6): várias melhorias de baixo/médio esforço que juntas melhoram significativamente a qualidade da aplicação.
