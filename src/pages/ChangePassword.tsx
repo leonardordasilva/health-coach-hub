@@ -40,6 +40,20 @@ function usePasswordStrength(password: string) {
   }, [password]);
 }
 
+function translateAuthError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("weak") || lower.includes("easy to guess") || lower.includes("known to be")) {
+    return "A senha escolhida é muito comum ou fraca. Por favor, escolha uma senha diferente.";
+  }
+  if (lower.includes("at least")) {
+    return "A senha deve ter pelo menos 8 caracteres.";
+  }
+  if (lower.includes("different from the old password")) {
+    return "A nova senha deve ser diferente da senha atual.";
+  }
+  return "Erro ao alterar senha. Tente novamente.";
+}
+
 export default function ChangePassword() {
   useDocumentTitle("Trocar Senha | Health Coach");
   const [password, setPassword] = useState("");
@@ -74,8 +88,8 @@ export default function ChangePassword() {
       if (profile?.role === "admin") navigate("/admin");
       else navigate("/dashboard");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erro ao alterar senha.";
-      toast.error(message);
+      const raw = err instanceof Error ? err.message : "";
+      toast.error(translateAuthError(raw));
     } finally {
       setLoading(false);
     }
