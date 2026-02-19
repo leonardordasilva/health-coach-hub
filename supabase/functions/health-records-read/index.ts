@@ -1,36 +1,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { decrypt } from "../_shared/crypto.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-async function getKey(secret: string): Promise<CryptoKey> {
-  const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret).slice(0, 32).buffer as ArrayBuffer,
-    { name: "AES-GCM" },
-    false,
-    ["encrypt", "decrypt"]
-  );
-  return keyMaterial;
-}
-
-async function decrypt(encryptedBase64: string, secret: string): Promise<string> {
-  const key = await getKey(secret);
-  const combined = Uint8Array.from(atob(encryptedBase64), c => c.charCodeAt(0));
-  const iv = combined.slice(0, 12);
-  const ciphertext = combined.slice(12);
-  const decrypted = await crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
-    key,
-    ciphertext
-  );
-  return new TextDecoder().decode(decrypted);
+function makeCorsHeaders(req: Request): Record<string, string> {
+  const appUrl = Deno.env.get("APP_URL") ?? "*";
+  const origin = req.headers.get("Origin") ?? "";
+  const allowed = appUrl === "*" || origin === appUrl ? origin || "*" : appUrl;
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = makeCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -107,7 +89,7 @@ Deno.serve(async (req) => {
     console.error("health-records-read error:", err);
     return new Response(JSON.stringify({ error: "An error occurred. Please try again." }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...makeCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

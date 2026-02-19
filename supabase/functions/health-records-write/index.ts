@@ -1,40 +1,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { encrypt } from "../_shared/crypto.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-// AES-GCM encryption helpers
-async function getKey(secret: string): Promise<CryptoKey> {
-  const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw",
-    enc.encode(secret).slice(0, 32).buffer as ArrayBuffer,
-    { name: "AES-GCM" },
-    false,
-    ["encrypt", "decrypt"]
-  );
-  return keyMaterial;
-}
-
-async function encrypt(data: string, secret: string): Promise<string> {
-  const key = await getKey(secret);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const enc = new TextEncoder();
-  const encrypted = await crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
-    key,
-    enc.encode(data)
-  );
-  // Combine iv + ciphertext, base64 encode
-  const combined = new Uint8Array(iv.byteLength + encrypted.byteLength);
-  combined.set(iv, 0);
-  combined.set(new Uint8Array(encrypted), iv.byteLength);
-  return btoa(String.fromCharCode(...combined));
+function makeCorsHeaders(req: Request): Record<string, string> {
+  const appUrl = Deno.env.get("APP_URL") ?? "*";
+  const origin = req.headers.get("Origin") ?? "";
+  const allowed = appUrl === "*" || origin === appUrl ? origin || "*" : appUrl;
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = makeCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -104,6 +82,7 @@ Deno.serve(async (req) => {
     });
   } catch (err: unknown) {
     console.error("health-records-write error:", err);
+    const corsHeaders = makeCorsHeaders(req);
     const code = (err as { code?: string })?.code;
     const isDuplicate = code === "23505";
     return new Response(
