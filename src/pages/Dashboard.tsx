@@ -19,6 +19,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAvatarUpload } from "@/hooks/useAvatarUpload";
 import type { HealthRecord } from "@/types/health";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 type DeltaItem = {
   label: string;
@@ -54,6 +55,7 @@ async function fetchHealthRecords(): Promise<HealthRecord[]> {
 }
 
 export default function Dashboard() {
+  useDocumentTitle("Bioimpedância | Health Coach");
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const { uploading: uploadingAvatar, handleUpload: handleAvatarUpload } = useAvatarUpload();
@@ -171,8 +173,8 @@ export default function Dashboard() {
       <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
         {/* Header */}
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Dashboard Pessoal</h1>
-          <p className="text-muted-foreground mt-1">Acompanhe sua evolução de saúde</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Bioimpedância</h1>
+          <p className="text-muted-foreground mt-1">Acompanhe sua composição corporal</p>
         </div>
 
         {/* Inactivity alert */}

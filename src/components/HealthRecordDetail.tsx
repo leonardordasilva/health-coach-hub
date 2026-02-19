@@ -3,19 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { calculateBMI, calculateBodyType, calculateBodyAge, calculateAge, formatDate } from "@/lib/health";
 import { Activity, Droplets, Flame, Heart, Scale, Dumbbell, Bone, Percent, Target, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import BodyTypeIcon from "@/components/BodyTypeIcon";
-
-interface HealthRecord {
-  id: string;
-  record_date: string;
-  weight: number;
-  body_fat: number | null;
-  water: number | null;
-  basal_metabolism: number | null;
-  visceral_fat: number | null;
-  muscle: number | null;
-  protein: number | null;
-  bone_mass: number | null;
-}
+import type { HealthRecord } from "@/types/health";
 
 interface Profile {
   id: string;
@@ -85,9 +73,9 @@ export default function HealthRecordDetail({ record, profile, onClose }: Props) 
                   <m.icon className="w-4 h-4 text-accent-foreground" />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground leading-tight">{m.label}</p>
+                   <p className="text-xs text-muted-foreground leading-tight">{m.label}</p>
                   <p className="text-sm font-semibold text-foreground">
-                    {m.value != null ? `${m.value}${m.unit}` : "—"}
+                    {m.value != null ? `${Number(m.value).toFixed(1)}${m.unit}` : "—"}
                   </p>
                 </div>
               </div>

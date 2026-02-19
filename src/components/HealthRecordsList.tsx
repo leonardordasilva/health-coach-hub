@@ -124,7 +124,7 @@ function Metric({ label, value, unit }: { label: string; value: number | null | 
     <div className="bg-muted/50 rounded-lg p-2 text-center">
       <p className="text-xs text-muted-foreground leading-tight">{label}</p>
       <p className="text-sm font-semibold text-foreground mt-0.5">
-        {value != null ? `${Number(value).toFixed(2)}${unit}` : "—"}
+        {value != null ? `${Number(value).toFixed(1)}${unit}` : "—"}
       </p>
     </div>
   );
