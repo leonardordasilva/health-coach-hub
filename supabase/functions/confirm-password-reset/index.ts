@@ -103,29 +103,32 @@ Deno.serve(async (req) => {
       .eq("id", userId);
 
     // Send email with new temp password
-    const resendKey = Deno.env.get("RESEND_API_KEY");
-    if (resendKey && profile?.email) {
-      await fetch("https://api.resend.com/emails", {
+    const sendgridKey = Deno.env.get("SENDGRID_API_KEY");
+    if (sendgridKey && profile?.email) {
+      await fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${resendKey}`,
+          "Authorization": `Bearer ${sendgridKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Health Coach <onboarding@resend.dev>",
-          to: [profile.email],
+          from: { email: "lrodriguesdasilva@gmail.com", name: "Health Coach" },
+          to: [{ email: profile.email }],
           subject: "Sua nova senha temporária — Health Coach",
-          html: `
-            <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-              <h2 style="color: #2D9B6B;">Health Coach</h2>
-              <p>Sua nova senha temporária foi gerada com sucesso. Use-a para acessar o sistema:</p>
-              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: center;">
-                <code style="font-size: 18px; font-weight: bold; color: #15803d; letter-spacing: 2px;">${newPassword}</code>
+          content: [{
+            type: "text/html",
+            value: `
+              <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+                <h2 style="color: #2D9B6B;">Health Coach</h2>
+                <p>Sua nova senha temporária foi gerada com sucesso. Use-a para acessar o sistema:</p>
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: center;">
+                  <code style="font-size: 18px; font-weight: bold; color: #15803d; letter-spacing: 2px;">${newPassword}</code>
+                </div>
+                <p style="color: #666; font-size: 14px;">Você será solicitado a trocar esta senha no próximo acesso.</p>
+                <p style="color: #999; font-size: 12px;">Se você não solicitou esta alteração, entre em contato com o suporte.</p>
               </div>
-              <p style="color: #666; font-size: 14px;">Você será solicitado a trocar esta senha no próximo acesso.</p>
-              <p style="color: #999; font-size: 12px;">Se você não solicitou esta alteração, entre em contato com o suporte.</p>
-            </div>
-          `,
+            `,
+          }],
         }),
       });
     }

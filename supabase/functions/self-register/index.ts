@@ -104,29 +104,32 @@ Deno.serve(async (req) => {
     await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "user" });
 
     // Send welcome email
-    const resendKey = Deno.env.get("RESEND_API_KEY");
-    if (resendKey) {
-      await fetch("https://api.resend.com/emails", {
+    const sendgridKey = Deno.env.get("SENDGRID_API_KEY");
+    if (sendgridKey) {
+      await fetch("https://api.sendgrid.com/v3/mail/send", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${resendKey}`,
+          "Authorization": `Bearer ${sendgridKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "Health Coach <onboarding@resend.dev>",
-          to: [email],
+          from: { email: "lrodriguesdasilva@gmail.com", name: "Health Coach" },
+          to: [{ email }],
           subject: "Bem-vindo ao Health Coach!",
-          html: `
-            <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-              <h2 style="color: #2D9B6B;">Bem-vindo ao Health Coach! 🌱</h2>
-              <p>Sua conta foi criada com sucesso. Use as credenciais abaixo para acessar o sistema:</p>
-              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0;">
-                <p style="margin: 4px 0;"><strong>E-mail:</strong> ${email}</p>
-                <p style="margin: 4px 0;"><strong>Senha temporária:</strong> <code style="font-weight: bold; color: #15803d;">${tempPassword}</code></p>
+          content: [{
+            type: "text/html",
+            value: `
+              <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+                <h2 style="color: #2D9B6B;">Bem-vindo ao Health Coach! 🌱</h2>
+                <p>Sua conta foi criada com sucesso. Use as credenciais abaixo para acessar o sistema:</p>
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                  <p style="margin: 4px 0;"><strong>E-mail:</strong> ${email}</p>
+                  <p style="margin: 4px 0;"><strong>Senha temporária:</strong> <code style="font-weight: bold; color: #15803d;">${tempPassword}</code></p>
+                </div>
+                <p style="color: #666; font-size: 14px;">Você será solicitado a trocar esta senha e completar seu cadastro no primeiro acesso.</p>
               </div>
-              <p style="color: #666; font-size: 14px;">Você será solicitado a trocar esta senha e completar seu cadastro no primeiro acesso.</p>
-            </div>
-          `,
+            `,
+          }],
         }),
       });
     }
