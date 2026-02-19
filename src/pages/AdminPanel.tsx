@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLanguage } from "@/i18n/index";
+import { localeMap } from "@/i18n/index";
 import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +30,8 @@ interface UserProfile {
 }
 
 export default function AdminPanel() {
-  useDocumentTitle("Painel de Usuários | Health Coach");
+  const { t, language } = useLanguage();
+  useDocumentTitle(t("admin.pageTitle"));
   const [search, setSearch] = useState("");
   const [filterDefaultPassword, setFilterDefaultPassword] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -53,20 +56,15 @@ export default function AdminPanel() {
     return (profileData ?? []) as UserProfile[];
   };
 
-  const { data: users = [], isLoading: loading } = useQuery({
-    queryKey: ["admin-users"],
-    queryFn: fetchUsers,
-  });
-
+  const { data: users = [], isLoading: loading } = useQuery({ queryKey: ["admin-users"], queryFn: fetchUsers });
   const refreshUsers = () => queryClient.invalidateQueries({ queryKey: ["admin-users"] });
 
-  // Build monthly growth chart data (last 6 months)
   const growthChartData = useMemo(() => {
     const now = new Date();
     const months: { month: string; count: number }[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const label = d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
+      const label = d.toLocaleDateString(localeMap[language], { month: "short", year: "2-digit" });
       const count = users.filter(u => {
         const c = new Date(u.created_at);
         return c.getFullYear() === d.getFullYear() && c.getMonth() === d.getMonth();
@@ -74,11 +72,10 @@ export default function AdminPanel() {
       months.push({ month: label, count });
     }
     return months;
-  }, [users]);
+  }, [users, language]);
 
   const filtered = users.filter(u => {
-    const matchesSearch = u.email.toLowerCase().includes(search.toLowerCase()) ||
-      (u.name ?? "").toLowerCase().includes(search.toLowerCase());
+    const matchesSearch = u.email.toLowerCase().includes(search.toLowerCase()) || (u.name ?? "").toLowerCase().includes(search.toLowerCase());
     const matchesFilter = !filterDefaultPassword || u.is_default_password;
     return matchesSearch && matchesFilter;
   });
@@ -87,110 +84,70 @@ export default function AdminPanel() {
     e.preventDefault();
     setCreating(true);
     try {
-      const { error } = await supabase.functions.invoke("create-user", {
-        body: { email: form.email },
-      });
+      const { error } = await supabase.functions.invoke("create-user", { body: { email: form.email } });
       if (error) throw error;
-      toast.success(`Usuário criado! Senha enviada para ${form.email}`);
+      toast.success(t("admin.createSuccess", { email: form.email }));
       setShowCreateModal(false);
       setForm({ email: "" });
       refreshUsers();
-    } catch (err: unknown) {
-      console.error("Create user error:", err);
-      toast.error("Erro ao criar usuário. Tente novamente.");
-    } finally {
-      setCreating(false);
-    }
+    } catch { toast.error(t("admin.createError")); } finally { setCreating(false); }
   };
 
   const handleResetPassword = async (userId: string, email: string) => {
     try {
-      const { error } = await supabase.functions.invoke("reset-password", {
-        body: { email, userId },
-      });
+      const { error } = await supabase.functions.invoke("reset-password", { body: { email, userId } });
       if (error) throw error;
-      toast.success("Nova senha enviada por e-mail.");
+      toast.success(t("admin.resetPasswordSuccess"));
       refreshUsers();
-    } catch (err: unknown) {
-      console.error("Reset password error:", err);
-      toast.error("Erro ao resetar senha. Tente novamente.");
-    }
+    } catch { toast.error(t("admin.resetPasswordError")); }
   };
 
   const handleDelete = async () => {
     if (!deleteUserId) return;
     try {
-      const { error } = await supabase.functions.invoke("delete-user", {
-        body: { userId: deleteUserId },
-      });
+      const { error } = await supabase.functions.invoke("delete-user", { body: { userId: deleteUserId } });
       if (error) throw error;
-      toast.success("Usuário excluído.");
+      toast.success(t("admin.deleteSuccess"));
       setDeleteUserId(null);
       setShowDetailModal(false);
       refreshUsers();
-    } catch (err: unknown) {
-      console.error("Delete user error:", err);
-      toast.error("Erro ao excluir usuário. Tente novamente.");
-    }
+    } catch { toast.error(t("admin.deleteError")); }
   };
 
   return (
     <AppLayout>
       <div className="max-w-6xl mx-auto space-y-6 animate-fade-in">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Painel de Usuários</h1>
-            <p className="text-muted-foreground mt-1">Gerencie os usuários do sistema</p>
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">{t("admin.title")}</h1>
+            <p className="text-muted-foreground mt-1">{t("admin.subtitle")}</p>
           </div>
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className="gradient-hero text-primary-foreground shadow-health hover:opacity-90 transition-opacity gap-2"
-          >
-            <UserPlus className="w-4 h-4" />
-            Novo usuário
+          <Button onClick={() => setShowCreateModal(true)} className="gradient-hero text-primary-foreground shadow-health hover:opacity-90 transition-opacity gap-2">
+            <UserPlus className="w-4 h-4" />{t("admin.newUser")}
           </Button>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Card className="shadow-health border-border/50">
             <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
-                <Users className="w-5 h-5 text-accent-foreground" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total de usuários</p>
-                <p className="text-2xl font-bold text-foreground">{users.length}</p>
-              </div>
+              <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center"><Users className="w-5 h-5 text-accent-foreground" /></div>
+              <div><p className="text-sm text-muted-foreground">{t("admin.totalUsers")}</p><p className="text-2xl font-bold text-foreground">{users.length}</p></div>
             </CardContent>
           </Card>
-          <Card
-            className={`shadow-health border-border/50 cursor-pointer transition-all hover:shadow-md ${filterDefaultPassword ? "ring-2 ring-warning/50 bg-warning/5" : ""}`}
-            onClick={() => setFilterDefaultPassword(p => !p)}
-          >
+          <Card className={`shadow-health border-border/50 cursor-pointer transition-all hover:shadow-md ${filterDefaultPassword ? "ring-2 ring-warning/50 bg-warning/5" : ""}`} onClick={() => setFilterDefaultPassword(p => !p)}>
             <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
-                <Mail className="w-5 h-5 text-warning" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm text-muted-foreground">Senha padrão</p>
-                <p className="text-2xl font-bold text-foreground">{users.filter(u => u.is_default_password).length}</p>
-              </div>
-              {filterDefaultPassword && (
-                <Badge variant="outline" className="text-warning border-warning/30 bg-warning/10 text-xs">Filtro ativo</Badge>
-              )}
+              <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center"><Mail className="w-5 h-5 text-warning" /></div>
+              <div className="flex-1"><p className="text-sm text-muted-foreground">{t("admin.defaultPassword")}</p><p className="text-2xl font-bold text-foreground">{users.filter(u => u.is_default_password).length}</p></div>
+              {filterDefaultPassword && <Badge variant="outline" className="text-warning border-warning/30 bg-warning/10 text-xs">{t("admin.filterActive")}</Badge>}
             </CardContent>
           </Card>
         </div>
 
-        {/* Growth Chart */}
         {!loading && users.length > 0 && (
           <Card className="shadow-health border-border/50">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-primary" />
-                Crescimento de usuários — últimos 6 meses
+                <TrendingUp className="w-4 h-4 text-primary" />{t("admin.growthChart")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -199,10 +156,7 @@ export default function AdminPanel() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                   <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} allowDecimals={false} />
-                  <Tooltip
-                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }}
-                    formatter={(value: number) => [value, "Novos usuários"]}
-                  />
+                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} formatter={(value: number) => [value, t("admin.newUsers")]} />
                   <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -210,44 +164,31 @@ export default function AdminPanel() {
           </Card>
         )}
 
-        {/* Table */}
         <Card className="shadow-health border-border/50">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar por nome ou e-mail..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9 h-9"
-                />
+                <Input placeholder={t("admin.searchPlaceholder")} value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9 h-9" />
               </div>
-              <Button variant="outline" size="icon" onClick={refreshUsers} className="h-9 w-9 flex-shrink-0">
-                <RefreshCw className="w-4 h-4" />
-              </Button>
+              <Button variant="outline" size="icon" onClick={refreshUsers} className="h-9 w-9 flex-shrink-0"><RefreshCw className="w-4 h-4" /></Button>
             </div>
           </CardHeader>
           <CardContent className="p-0">
             {loading ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
-              </div>
+              <div className="flex items-center justify-center py-12"><div className="h-8 w-8 rounded-full border-4 border-primary border-t-transparent animate-spin" /></div>
             ) : filtered.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 gap-2">
-                <Users className="w-10 h-10 text-muted-foreground/40" />
-                <p className="text-muted-foreground">Nenhum usuário encontrado</p>
-              </div>
+              <div className="flex flex-col items-center justify-center py-12 gap-2"><Users className="w-10 h-10 text-muted-foreground/40" /><p className="text-muted-foreground">{t("admin.noUsers")}</p></div>
             ) : (
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-                      <TableHead>E-mail</TableHead>
-                      <TableHead className="hidden sm:table-cell">Nome</TableHead>
-                      <TableHead className="hidden md:table-cell">Nascimento</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      <TableHead>{t("admin.email")}</TableHead>
+                      <TableHead className="hidden sm:table-cell">{t("admin.name")}</TableHead>
+                      <TableHead className="hidden md:table-cell">{t("admin.birthDate")}</TableHead>
+                      <TableHead>{t("admin.status")}</TableHead>
+                      <TableHead className="text-right">{t("admin.actions")}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -255,22 +196,17 @@ export default function AdminPanel() {
                       <TableRow key={user.id} className="hover:bg-muted/30">
                         <TableCell className="font-medium text-sm">{user.email}</TableCell>
                         <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{user.name || "—"}</TableCell>
-                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(user.birth_date)}</TableCell>
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(user.birth_date, language)}</TableCell>
                         <TableCell>
                           {user.is_default_password ? (
-                            <Badge variant="outline" className="text-warning border-warning/30 bg-warning/10 text-xs">Senha padrão</Badge>
+                            <Badge variant="outline" className="text-warning border-warning/30 bg-warning/10 text-xs">{t("admin.defaultPassword")}</Badge>
                           ) : (
-                            <Badge variant="outline" className="text-success border-success/30 bg-success-light text-xs">Ativo</Badge>
+                            <Badge variant="outline" className="text-success border-success/30 bg-success-light text-xs">{t("admin.active")}</Badge>
                           )}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost" size="sm"
-                            onClick={() => { setSelectedUser(user); setShowDetailModal(true); }}
-                            className="h-8 gap-1.5 text-xs"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Detalhes</span>
+                          <Button variant="ghost" size="sm" onClick={() => { setSelectedUser(user); setShowDetailModal(true); }} className="h-8 gap-1.5 text-xs">
+                            <Eye className="w-3.5 h-3.5" /><span className="hidden sm:inline">{t("admin.details")}</span>
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -283,83 +219,58 @@ export default function AdminPanel() {
         </Card>
       </div>
 
-      {/* Create User Modal */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <UserPlus className="w-5 h-5 text-primary" />
-              Novo usuário
-            </DialogTitle>
-            <DialogDescription>
-              Uma senha temporária será gerada pelo servidor e enviada por e-mail ao usuário.
-            </DialogDescription>
+            <DialogTitle className="flex items-center gap-2"><UserPlus className="w-5 h-5 text-primary" />{t("admin.createTitle")}</DialogTitle>
+            <DialogDescription>{t("admin.createDescription")}</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleCreate} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="new-email">E-mail *</Label>
-              <Input
-                id="new-email" type="email"
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                required placeholder="usuario@email.com"
-              />
+              <Label htmlFor="new-email">{t("admin.emailRequired")}</Label>
+              <Input id="new-email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} required placeholder={t("admin.emailPlaceholder")} />
             </div>
             <DialogFooter className="gap-2 mt-2">
-              <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>Cancelar</Button>
-              <Button type="submit" disabled={creating} className="gradient-hero text-primary-foreground">
-                {creating ? "Criando..." : "Criar usuário"}
-              </Button>
+              <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>{t("common.cancel")}</Button>
+              <Button type="submit" disabled={creating} className="gradient-hero text-primary-foreground">{creating ? t("admin.createSubmitting") : t("admin.createSubmit")}</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
-      {/* Detail Modal */}
       <Dialog open={showDetailModal} onOpenChange={setShowDetailModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="w-5 h-5 text-primary" />
-              Detalhes do usuário
-            </DialogTitle>
+            <DialogTitle className="flex items-center gap-2"><Eye className="w-5 h-5 text-primary" />{t("admin.detailTitle")}</DialogTitle>
           </DialogHeader>
           {selectedUser && (
             <div className="space-y-4">
               <div className="space-y-3">
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <User className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <div><p className="text-xs text-muted-foreground">Nome</p><p className="text-sm font-medium">{selectedUser.name || "—"}</p></div>
+                  <div><p className="text-xs text-muted-foreground">{t("admin.name")}</p><p className="text-sm font-medium">{selectedUser.name || "—"}</p></div>
                 </div>
                 <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                   <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                  <div><p className="text-xs text-muted-foreground">E-mail</p><p className="text-sm font-medium">{selectedUser.email}</p></div>
+                  <div><p className="text-xs text-muted-foreground">{t("admin.email")}</p><p className="text-sm font-medium">{selectedUser.email}</p></div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                     <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <div><p className="text-xs text-muted-foreground">Nascimento</p><p className="text-sm font-medium">{formatDate(selectedUser.birth_date)}</p></div>
+                    <div><p className="text-xs text-muted-foreground">{t("admin.birthDate")}</p><p className="text-sm font-medium">{formatDate(selectedUser.birth_date, language)}</p></div>
                   </div>
                   <div className="p-3 rounded-lg bg-muted/50">
-                    <p className="text-xs text-muted-foreground">Cadastrado em</p>
-                    <p className="text-sm font-medium">{formatDateTime(selectedUser.created_at)}</p>
+                    <p className="text-xs text-muted-foreground">{t("admin.registeredAt")}</p>
+                    <p className="text-sm font-medium">{formatDateTime(selectedUser.created_at, language)}</p>
                   </div>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 pt-2">
-                <Button
-                  variant="outline" className="flex-1 gap-2 text-sm"
-                  onClick={() => handleResetPassword(selectedUser.id, selectedUser.email)}
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Resetar senha
+                <Button variant="outline" className="flex-1 gap-2 text-sm" onClick={() => handleResetPassword(selectedUser.id, selectedUser.email)}>
+                  <RefreshCw className="w-4 h-4" />{t("admin.resetPasswordBtn")}
                 </Button>
-                <Button
-                  variant="destructive" className="flex-1 gap-2 text-sm"
-                  onClick={() => setDeleteUserId(selectedUser.id)}
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Excluir usuário
+                <Button variant="destructive" className="flex-1 gap-2 text-sm" onClick={() => setDeleteUserId(selectedUser.id)}>
+                  <Trash2 className="w-4 h-4" />{t("admin.deleteUser")}
                 </Button>
               </div>
             </div>
@@ -367,20 +278,15 @@ export default function AdminPanel() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <AlertDialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta ação é irreversível. O usuário e todos os seus dados de saúde serão permanentemente excluídos.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("admin.deleteTitle")}</AlertDialogTitle>
+            <AlertDialogDescription>{t("admin.deleteDescription")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Sim, excluir
-            </AlertDialogAction>
+            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t("admin.deleteConfirm")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

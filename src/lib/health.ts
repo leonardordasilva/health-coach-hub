@@ -1,11 +1,12 @@
 // Health & Body Type calculation utilities
+import type { Language } from "@/i18n/index";
 
 export interface BodyMetrics {
-  weight: number;      // kg
-  height: number;      // cm
+  weight: number;
+  height: number;
   age: number;
-  bodyFat: number;     // %
-  muscle: number;      // kg
+  bodyFat: number;
+  muscle: number;
 }
 
 export interface BMIResult {
@@ -18,19 +19,68 @@ export interface BodyTypeResult {
   description: string;
 }
 
-export function calculateBMI(weight: number, heightCm: number): BMIResult {
+const bmiClassifications: Record<Language, string[]> = {
+  pt: ["Abaixo do peso", "Peso normal", "Sobrepeso", "Obeso"],
+  en: ["Underweight", "Normal weight", "Overweight", "Obese"],
+  es: ["Bajo peso", "Peso normal", "Sobrepeso", "Obeso"],
+};
+
+export function calculateBMI(weight: number, heightCm: number, lang: Language = "pt"): BMIResult {
   const heightM = heightCm / 100;
   const bmi = weight / (heightM * heightM);
   const value = Math.round(bmi * 10) / 10;
+  const labels = bmiClassifications[lang];
 
   let classification = "";
-  if (bmi < 18.5) classification = "Abaixo do peso";
-  else if (bmi < 25) classification = "Peso normal";
-  else if (bmi < 30) classification = "Sobrepeso";
-  else classification = "Obeso";
+  if (bmi < 18.5) classification = labels[0];
+  else if (bmi < 25) classification = labels[1];
+  else if (bmi < 30) classification = labels[2];
+  else classification = labels[3];
 
   return { value, classification };
 }
+
+interface BodyTypeEntry { type: string; description: string; }
+type BodyTypeMap = Record<string, BodyTypeEntry>;
+
+const bodyTypeTranslations: Record<Language, BodyTypeMap> = {
+  pt: {
+    skinny: { type: "Magro", description: "IMC abaixo do peso com baixo percentual de gordura" },
+    skinnyBalanced: { type: "Magro Equilibrado", description: "IMC abaixo do peso com gordura moderada" },
+    skinnyMuscular: { type: "Magro Musculoso", description: "IMC abaixo do peso com alta massa muscular" },
+    skinnyGeneric: { type: "Magro", description: "IMC abaixo do peso" },
+    muscularBalanced: { type: "Musculoso Equilibrado", description: "Ótima composição corporal com baixa gordura e alto músculo" },
+    balanced: { type: "Equilibrado", description: "Composição corporal saudável dentro da normalidade" },
+    lackExercise: { type: "Falta de Exercício", description: "Peso normal porém com excesso de gordura e baixa massa muscular" },
+    thickSet: { type: "Grosso Conjunto", description: "Sobrepeso com massa muscular significativa" },
+    overweight: { type: "Sobrepeso", description: "IMC em faixa de sobrepeso com gordura elevada" },
+    obese: { type: "Obeso", description: "IMC em faixa de obesidade — recomenda-se acompanhamento médico" },
+  },
+  en: {
+    skinny: { type: "Skinny", description: "BMI underweight with low body fat percentage" },
+    skinnyBalanced: { type: "Skinny Balanced", description: "BMI underweight with moderate fat" },
+    skinnyMuscular: { type: "Skinny Muscular", description: "BMI underweight with high muscle mass" },
+    skinnyGeneric: { type: "Skinny", description: "BMI underweight" },
+    muscularBalanced: { type: "Muscular Balanced", description: "Great body composition with low fat and high muscle" },
+    balanced: { type: "Balanced", description: "Healthy body composition within normal range" },
+    lackExercise: { type: "Lack of Exercise", description: "Normal weight but with excess fat and low muscle mass" },
+    thickSet: { type: "Thick Set", description: "Overweight with significant muscle mass" },
+    overweight: { type: "Overweight", description: "BMI in overweight range with elevated fat" },
+    obese: { type: "Obese", description: "BMI in obesity range — medical follow-up recommended" },
+  },
+  es: {
+    skinny: { type: "Delgado", description: "IMC bajo peso con bajo porcentaje de grasa" },
+    skinnyBalanced: { type: "Delgado Equilibrado", description: "IMC bajo peso con grasa moderada" },
+    skinnyMuscular: { type: "Delgado Musculoso", description: "IMC bajo peso con alta masa muscular" },
+    skinnyGeneric: { type: "Delgado", description: "IMC bajo peso" },
+    muscularBalanced: { type: "Musculoso Equilibrado", description: "Gran composición corporal con baja grasa y alto músculo" },
+    balanced: { type: "Equilibrado", description: "Composición corporal saludable dentro de lo normal" },
+    lackExercise: { type: "Falta de Ejercicio", description: "Peso normal pero con exceso de grasa y baja masa muscular" },
+    thickSet: { type: "Corpulento", description: "Sobrepeso con masa muscular significativa" },
+    overweight: { type: "Sobrepeso", description: "IMC en rango de sobrepeso con grasa elevada" },
+    obese: { type: "Obeso", description: "IMC en rango de obesidad — se recomienda seguimiento médico" },
+  },
+};
 
 export function calculateBodyType(
   weight: number,
@@ -38,33 +88,33 @@ export function calculateBodyType(
   age: number,
   imc: number,
   gorduraCorporal: number,
-  musculo: number
+  musculo: number,
+  lang: Language = "pt"
 ): BodyTypeResult {
   const muscleRatio = (musculo / weight) * 100;
   const highMuscle = muscleRatio > 40;
+  const bt = bodyTypeTranslations[lang];
 
   if (imc < 18.5) {
-    if (gorduraCorporal < 15) return { type: "Magro", description: "IMC abaixo do peso com baixo percentual de gordura" };
-    if (gorduraCorporal <= 20) return { type: "Magro Equilibrado", description: "IMC abaixo do peso com gordura moderada" };
-    if (highMuscle) return { type: "Magro Musculoso", description: "IMC abaixo do peso com alta massa muscular" };
-    return { type: "Magro", description: "IMC abaixo do peso" };
+    if (gorduraCorporal < 15) return bt.skinny;
+    if (gorduraCorporal <= 20) return bt.skinnyBalanced;
+    if (highMuscle) return bt.skinnyMuscular;
+    return bt.skinnyGeneric;
   }
 
   if (imc <= 24.9) {
-    if (gorduraCorporal < 18 && highMuscle) return { type: "Musculoso Equilibrado", description: "Ótima composição corporal com baixa gordura e alto músculo" };
-    if (gorduraCorporal <= 25) return { type: "Equilibrado", description: "Composição corporal saudável dentro da normalidade" };
-    return { type: "Falta de Exercício", description: "Peso normal porém com excesso de gordura e baixa massa muscular" };
+    if (gorduraCorporal < 18 && highMuscle) return bt.muscularBalanced;
+    if (gorduraCorporal <= 25) return bt.balanced;
+    return bt.lackExercise;
   }
 
   if (imc <= 29.9) {
-    if (muscleRatio > 35) return { type: "Grosso Conjunto", description: "Sobrepeso com massa muscular significativa" };
-    return { type: "Sobrepeso", description: "IMC em faixa de sobrepeso com gordura elevada" };
+    if (muscleRatio > 35) return bt.thickSet;
+    return bt.overweight;
   }
 
-  // Suppress unused parameter warning
   void age; void heightCm;
-
-  return { type: "Obeso", description: "IMC em faixa de obesidade — recomenda-se acompanhamento médico" };
+  return bt.obese;
 }
 
 export function calculateAge(birthDate: string): number {
@@ -105,27 +155,33 @@ export function calculateBodyAge(
   return Math.max(Math.round(bodyAge), 10);
 }
 
-export function formatDate(date: string | null | undefined): string {
+const localeMap: Record<Language, string> = {
+  pt: "pt-BR",
+  en: "en-US",
+  es: "es-ES",
+};
+
+export function formatDate(date: string | null | undefined, lang: Language = "pt"): string {
   if (!date) return "—";
   const normalized = date.includes("T") ? date : date + "T00:00:00";
   const d = new Date(normalized);
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("pt-BR");
+  return d.toLocaleDateString(localeMap[lang]);
 }
 
-export function formatDateTime(date: string | null | undefined): string {
+export function formatDateTime(date: string | null | undefined, lang: Language = "pt"): string {
   if (!date) return "—";
   const d = new Date(date);
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("pt-BR");
+  return d.toLocaleDateString(localeMap[lang]);
 }
 
-export function formatMonthYear(date: string | null | undefined): string {
+export function formatMonthYear(date: string | null | undefined, lang: Language = "pt"): string {
   if (!date) return "—";
   const normalized = date.includes("T") ? date : date + "T00:00:00";
   const d = new Date(normalized);
   if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("pt-BR", { month: "2-digit", year: "numeric" });
+  return d.toLocaleDateString(localeMap[lang], { month: "2-digit", year: "numeric" });
 }
 
 export function getMetricDelta(

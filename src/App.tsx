@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/i18n/index";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -30,16 +31,10 @@ const Spinner = () => (
 function AuthRedirect() {
   const { user, profile, loading, profileLoading } = useAuth();
 
-  // Wait for auth session + profile
   if (loading || profileLoading) return <Spinner />;
-
-  // No user → go to login
   if (!user) return <Navigate to="/landing" replace />;
-
-  // Profile loaded — redirect based on role
   if (profile?.is_default_password) return <Navigate to="/trocar-senha" replace />;
   if (profile?.role === "admin") return <Navigate to="/admin" replace />;
-
   return <Navigate to="/dashboard" replace />;
 }
 
@@ -51,38 +46,10 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/esqueci-senha" element={<ForgotPassword />} />
       <Route path="/confirmar-reset" element={<ConfirmReset />} />
-      <Route
-        path="/trocar-senha"
-        element={
-          <ProtectedRoute>
-            <ChangePassword />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute requiredRole="admin">
-            <AdminPanel />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/perfil"
-        element={
-          <ProtectedRoute requiredRole="user">
-            <Profile />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute requiredRole="user">
-            <Dashboard />
-          </ProtectedRoute>
-        }
-      />
+      <Route path="/trocar-senha" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
+      <Route path="/perfil" element={<ProtectedRoute requiredRole="user"><Profile /></ProtectedRoute>} />
+      <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><Dashboard /></ProtectedRoute>} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
@@ -93,11 +60,13 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
+      <LanguageProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+        </BrowserRouter>
+      </LanguageProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );

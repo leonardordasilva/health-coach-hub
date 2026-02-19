@@ -1,7 +1,9 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/i18n/index";
 import { Heart, LogOut, ScanLine, Users, UserCog } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import LanguageSelector from "@/components/LanguageSelector";
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -9,13 +11,14 @@ interface AppLayoutProps {
 
 export default function AppLayout({ children }: AppLayoutProps) {
   const { profile, signOut } = useAuth();
+  const { t } = useLanguage();
   const location = useLocation();
 
   const navItems = profile?.role === "admin"
-    ? [{ icon: Users, label: "Usuários", to: "/admin" }]
+    ? [{ icon: Users, label: t("appLayout.users"), to: "/admin" }]
     : [
-        { icon: UserCog, label: "Perfil", to: "/perfil" },
-        { icon: ScanLine, label: "Bioimpedância", to: "/dashboard" },
+        { icon: UserCog, label: t("appLayout.profile"), to: "/perfil" },
+        { icon: ScanLine, label: t("appLayout.bioimpedance"), to: "/dashboard" },
       ];
 
   return (
@@ -52,13 +55,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
           ))}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border">
+        <div className="p-4 border-t border-sidebar-border space-y-2">
+          <LanguageSelector />
           <button
             onClick={signOut}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 w-full text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
           >
             <LogOut className="w-4 h-4 flex-shrink-0" />
-            Sair
+            {t("common.logout")}
           </button>
         </div>
       </aside>
@@ -73,6 +77,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
             <span className="font-bold text-sidebar-foreground text-sm">Health Coach</span>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSelector />
             {navItems.map((item) => (
               <Link
                 key={item.to}
