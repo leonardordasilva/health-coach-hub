@@ -1,86 +1,63 @@
 
-# Migração de SendGrid para Brevo
+# Traduzir mensagens de erro do Supabase para pt-BR
 
-## O que precisa ser feito
+## Problema identificado
 
-O sistema atual usa o SendGrid para envio de e-mails em 4 funções de backend. A migração para o Brevo requer:
+Na tela `/trocar-senha`, quando o Supabase rejeita uma senha por ser considerada fraca ou comum, ele retorna a mensagem em inglês:
 
-1. **Configurar a chave de API do Brevo** como segredo no backend (a chave `SENDGRID_API_KEY` existente será substituída por `BREVO_API_KEY`)
-2. **Atualizar as 4 funções de backend** que fazem chamadas de e-mail
+> "Password is known to be weak and easy to guess, please choose a different one."
 
----
+O código atual (linha 77) exibe o `err.message` diretamente, sem tradução:
+```typescript
+const message = err instanceof Error ? err.message : "Erro ao alterar senha.";
+toast.error(message);
+```
 
-## Diferenças entre a API do SendGrid e do Brevo
+## Solução
 
-| Aspecto | SendGrid | Brevo |
-|---|---|---|
-| Endpoint | `https://api.sendgrid.com/v3/mail/send` | `https://api.brevo.com/v3/smtp/email` |
-| Autenticação | Header: `Authorization: Bearer KEY` | Header: `api-key: KEY` |
-| Remetente | `from: { email, name }` | `sender: { email, name }` |
-| Destinatário | `to: [{ email }]` | `to: [{ email }]` (igual) |
-| Corpo HTML | `content: [{ type: "text/html", value: "..." }]` | `htmlContent: "..."` |
-| Assunto | `subject: "..."` | `subject: "..."` (igual) |
+Criar um mapeamento de erros conhecidos do Supabase Auth para suas equivalentes em pt-BR. A função de tradução verifica se a mensagem contém termos-chave e retorna a tradução adequada, com fallback genérico em português.
 
----
+### Mapeamento de erros a cobrir
 
-## Funções de backend a atualizar
+| Mensagem original (Supabase) | Tradução pt-BR |
+|---|---|
+| "Password is known to be weak and easy to guess..." | "A senha escolhida é muito comum ou fraca. Por favor, escolha uma senha diferente." |
+| "Password should be at least..." | "A senha deve ter pelo menos 8 caracteres." |
+| "New password should be different from the old password." | "A nova senha deve ser diferente da senha atual." |
+| Qualquer outro erro | "Erro ao alterar senha. Tente novamente." |
 
-### 1. `supabase/functions/create-user/index.ts`
-- E-mail de boas-vindas para novo usuário criado pelo admin
-- Substitui bloco `sendgridKey` → `brevoKey`
-- Adapta payload para formato Brevo
+## Arquivo a modificar
 
-### 2. `supabase/functions/self-register/index.ts`
-- E-mail de boas-vindas para auto-cadastro
-- Mesmo ajuste de payload
+- `src/pages/ChangePassword.tsx` — apenas o bloco `catch` (linha 76-79), adicionando uma função auxiliar `translateAuthError()` antes do componente.
 
-### 3. `supabase/functions/reset-password/index.ts`
-- E-mail com link de confirmação de reset de senha
-- Mesmo ajuste de payload
+## Mudança técnica
 
-### 4. `supabase/functions/confirm-password-reset/index.ts`
-- E-mail com nova senha temporária gerada após confirmação
-- Mesmo ajuste de payload
+```typescript
+// Função auxiliar para traduzir erros do Supabase Auth
+function translateAuthError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes("weak") || lower.includes("easy to guess") || lower.includes("known to be")) {
+    return "A senha escolhida é muito comum ou fraca. Por favor, escolha uma senha diferente.";
+  }
+  if (lower.includes("at least")) {
+    return "A senha deve ter pelo menos 8 caracteres.";
+  }
+  if (lower.includes("different from the old password")) {
+    return "A nova senha deve ser diferente da senha atual.";
+  }
+  return "Erro ao alterar senha. Tente novamente.";
+}
 
----
-
-## Configuração de segredo necessária
-
-Antes de atualizar o código, será solicitado ao usuário que insira sua **Brevo API Key** (gerada em `app.brevo.com → Settings → API Keys`). O segredo será armazenado como `BREVO_API_KEY`.
-
-O segredo `SENDGRID_API_KEY` pode ser mantido inativo (não será removido automaticamente) — o código simplesmente deixará de referenciá-lo.
-
----
-
-## Detalhes técnicos
-
-### Formato do payload Brevo (exemplo)
-```json
-{
-  "sender": { "email": "lrodriguesdasilva@gmail.com", "name": "Health Coach" },
-  "to": [{ "email": "usuario@exemplo.com" }],
-  "subject": "Bem-vindo ao Health Coach!",
-  "htmlContent": "<div>...</div>"
+// No catch:
+} catch (err: unknown) {
+  const raw = err instanceof Error ? err.message : "";
+  toast.error(translateAuthError(raw));
 }
 ```
 
-### Helper compartilhado
-Como as 4 funções têm lógica de envio idêntica, cada uma terá uma função auxiliar `sendEmail()` interna para evitar duplicação de código.
-
----
-
-## Arquivos a modificar
-
-- `supabase/functions/create-user/index.ts`
-- `supabase/functions/self-register/index.ts`
-- `supabase/functions/reset-password/index.ts`
-- `supabase/functions/confirm-password-reset/index.ts`
-
 ## O que não muda
 
-- Conteúdo HTML dos e-mails
-- Endereço remetente (`lrodriguesdasilva@gmail.com`)
-- Lógica de geração de senha e tokens
-- Toda a lógica de autenticação e autorização
-- Rate limiting
-- Políticas de segurança do banco de dados
+- Layout e visual da tela
+- Lógica de força de senha
+- Navegação pós-sucesso
+- Toda a integração com o backend
