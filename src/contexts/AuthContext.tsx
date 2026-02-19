@@ -89,6 +89,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Initial load — awaits profile before releasing loading state
     const initializeAuth = async () => {
       try {
+        // If sessionStorage flag is missing, browser was closed — clear persisted session
+        const isSessionActive = sessionStorage.getItem("hc_session_active");
+        if (!isSessionActive) {
+          await supabase.auth.signOut();
+          sessionStorage.setItem("hc_session_active", "true");
+        }
+
         const { data: { session }, error } = await supabase.auth.getSession();
         if (!isMounted) return;
 
@@ -98,7 +105,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Await profile so role is known before any route decision
           await fetchProfile(session.user.id);
         }
       } catch (err) {
