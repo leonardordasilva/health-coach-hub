@@ -1,18 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decrypt } from "../_shared/crypto.ts";
 
-function makeCorsHeaders(req: Request): Record<string, string> {
-  const appUrl = Deno.env.get("APP_URL") ?? "*";
-  const origin = req.headers.get("Origin") ?? "";
-  const allowed = appUrl === "*" || origin === appUrl ? origin || "*" : appUrl;
-  return {
-    "Access-Control-Allow-Origin": allowed,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  };
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 Deno.serve(async (req) => {
-  const corsHeaders = makeCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -45,7 +39,6 @@ Deno.serve(async (req) => {
 
     if (error) throw error;
 
-    // Decrypt each record
     const records = await Promise.all((rows ?? []).map(async (row) => {
       let decrypted: Record<string, number | null> = {
         weight: null, body_fat: null, water: null, basal_metabolism: null,
@@ -57,11 +50,9 @@ Deno.serve(async (req) => {
           const plain = await decrypt(row.encrypted_data, encryptionKey);
           decrypted = JSON.parse(plain);
         } catch {
-          // If decryption fails (e.g., old plaintext records), fall back to plaintext weight
           decrypted.weight = row.weight;
         }
       } else {
-        // Legacy records without encryption — use plaintext weight
         decrypted.weight = row.weight;
       }
 
@@ -88,7 +79,7 @@ Deno.serve(async (req) => {
     console.error("health-records-read error:", err);
     return new Response(JSON.stringify({ error: "An error occurred. Please try again." }), {
       status: 500,
-      headers: { ...makeCorsHeaders(req), "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

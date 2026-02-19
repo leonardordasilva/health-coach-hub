@@ -1,19 +1,10 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
 
-function getAppOrigin(): string {
-  return Deno.env.get("APP_URL") ?? "*";
-}
-
-function makeCorsHeaders(req: Request): Record<string, string> {
-  const appUrl = getAppOrigin();
-  const origin = req.headers.get("Origin") ?? "";
-  const allowed = appUrl === "*" || origin === appUrl ? origin || "*" : appUrl;
-  return {
-    "Access-Control-Allow-Origin": allowed,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  };
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 function generatePassword(): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*";
@@ -33,11 +24,9 @@ function generatePassword(): string {
 }
 
 Deno.serve(async (req) => {
-  const corsHeaders = makeCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // Verify the requester is an admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -63,11 +52,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const requesterId = user.id;
     const { data: roleRow } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", requesterId)
+      .eq("user_id", user.id)
       .single();
 
     if (roleRow?.role !== "admin") {
@@ -91,10 +79,8 @@ Deno.serve(async (req) => {
     }
 
     const { email } = validated;
-    // Always generate password server-side — never accept from client
     const tempPassword = generatePassword();
 
-    // Create user in Auth
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password: tempPassword,
@@ -104,13 +90,9 @@ Deno.serve(async (req) => {
 
     const userId = newUser.user.id;
 
-    // Mark as default password (profile row is created by trigger)
     await supabaseAdmin.from("profiles").update({ is_default_password: true }).eq("id", userId);
-
-    // Insert user role
     await supabaseAdmin.from("user_roles").insert({ user_id: userId, role: "user" });
 
-    // Send welcome email
     const resendKey = Deno.env.get("RESEND_API_KEY");
     if (resendKey) {
       await fetch("https://api.resend.com/emails", {
@@ -145,7 +127,7 @@ Deno.serve(async (req) => {
     console.error("create-user error:", err);
     return new Response(JSON.stringify({ error: "An error occurred. Please try again." }), {
       status: 500,
-      headers: { ...makeCorsHeaders(req), "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
