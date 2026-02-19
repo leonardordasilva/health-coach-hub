@@ -1,109 +1,125 @@
-# Análise e Plano de Melhorias — Health Coach
+# Análise e Plano de Melhorias — Health Coach (Ciclo 2)
 
-## Estado Atual da Aplicação
+## Estado Atual Verificado
 
-O Health Coach é uma aplicação robusta de acompanhamento de saúde com autenticação segura, criptografia AES-GCM dos dados, avaliação por IA, dashboard com gráficos e painel administrativo. A análise do código revela pontos de excelência e oportunidades concretas de melhoria.
+Após revisão completa do código, o estado atual da aplicação está:
 
----
-
-## O que já está bem implementado
-
-- Criptografia AES-GCM dos dados de bioimpedância nas Edge Functions
-- Fluxo de senha padrão + troca obrigatória + reset via e-mail bem implementado
-- TanStack Query já integrado no Dashboard para cache e revalidação
-- Hook `useAvatarUpload` centralizado e reutilizado em `Dashboard` e `Profile`
-- Interface `HealthRecord` centralizada em `src/types/health.ts`
-- Animações com `framer-motion` nos cards e seções colapsáveis
-- Rate limiting na função `reset-password`
-- Alerta de inatividade (> 30 dias sem registro) no Dashboard
-- Barra de força de senha já implementada no `ChangePassword`
-- Indicador de progresso de metas no Dashboard
+- `AdminPanel.tsx`: Migrado para TanStack Query, placeholder de busca corrigido, card enganoso removido
+- `Dashboard.tsx`: Seções colapsáveis com persistência em `localStorage`, progresso de metas integrado no card de perfil
+- `_shared/crypto.ts`: Módulo compartilhado em uso pelas duas Edge Functions
+- `AppLayout.tsx`: Menu renomeado para "Bioimpedância" com ícone `ScanLine`
 
 ---
 
-## Melhorias Identificadas e Priorizadas
+## Melhorias Identificadas Neste Ciclo
 
-### PRIORIDADE ALTA — Bugs e Problemas Funcionais
+### PRIORIDADE ALTA
 
-#### 1. Erro recorrente no salvamento de registros (o problema atual)
+#### 1. Título da página "Dashboard Pessoal" desatualizado
 
-O `HealthRecordForm.tsx` mistura duas estratégias de validação de duplicatas: faz uma consulta prévia via `supabase.from("health_records")` **E** ainda mantém o código para lidar com erro 409 da Edge Function. O problema raiz é que o `supabase.functions.invoke` lança uma exceção para qualquer resposta não-2xx, consumindo o corpo da resposta antes que o código de tratamento possa lê-lo.
+O `h1` da página `Dashboard.tsx` ainda exibe **"Dashboard Pessoal"** e o subtítulo **"Acompanhe sua evolução de saúde"** — inconsistente com o novo nome do menu "Bioimpedância".
 
-**Solução recomendada**: Manter apenas a pré-validação no cliente (que já funciona) e remover completamente a dependência do tratamento do erro 409, ou migrar completamente para `fetch` nativo com controle total da resposta.
-
-#### 2. AdminPanel usa `useEffect` + `useState` ao invés de TanStack Query
-
-`fetchUsers()` em `AdminPanel.tsx` é chamado manualmente via `useEffect`. O restante do app já usa `useQuery`. Isso gera inconsistência e falta de cache/loading states padronizados.
-
-**Solução**: Migrar `fetchUsers` para `useQuery({ queryKey: ["admin-users"], queryFn: fetchUsers })` e `fetchUsers` como `queryClient.invalidateQueries`.
+**Arquivo**: `src/pages/Dashboard.tsx` (linha 174)
+**Mudança**: Atualizar título para **"Bioimpedância"** e subtítulo para **"Acompanhe sua composição corporal"**.
 
 ---
 
-### PRIORIDADE MÉDIA — UX e Funcionalidades
+#### 3. Número de decimais excessivo nas métricas dos cards de registro
 
-#### 5. Busca de texto no AdminPanel também funciona por nome, mas o placeholder diz apenas "e-mail"
+Em `HealthRecordsList.tsx`, a função `Metric` exibe os valores com `toFixed(2)` (ex: `70.00 kg`, `25.50%`). Isso ocupa espaço desnecessário e prejudica a legibilidade visual. O ideal para exibição em cards compactos seria 1 decimal (ex: `70.0 kg`, `25.5%`).
 
-O código já filtra por nome e por e-mail (`u.email... || u.name...`), mas o `placeholder` do input diz apenas "Buscar por e-mail...". Pequena inconsistência de UX.
-
-**Solução**: Atualizar placeholder para "Buscar por nome ou e-mail...".
-
-#### 6. Métricas de administrador incompletas
-
-O card "Total com registros" em `AdminPanel.tsx` tem um comentário `// placeholder — real count would need a join query` e usa `users.length` como valor incorreto. O dado que está sendo mostrado é o total de usuários, não o total com registros.
-
-**Solução**: Remover o card enganoso ou implementar a query correta que conta usuários com pelo menos 1 registro via a Edge Function ou uma query direta ao banco.
+**Arquivo**: `src/components/HealthRecordsList.tsx` (linha 128)
+**Mudança**: Alterar `toFixed(2)` para `toFixed(1)`.
 
 ---
 
-### PRIORIDADE BAIXA — Segurança e Manutenibilidade
+### PRIORIDADE MÉDIA
 
-#### 7. CORS wildcard (`*`) em todas as Edge Functions
+#### 4. `HealthRecordDetail` redefine a interface `HealthRecord` localmente
 
-Todas as 8 Edge Functions retornam `Access-Control-Allow-Origin: *`. Para um ambiente de produção, funções sensíveis como `create-user`, `delete-user` e `health-records-write` deveriam restringir ao domínio da aplicação.
+O componente `src/components/HealthRecordDetail.tsx` declara sua própria interface `HealthRecord` (linhas 7–18) em vez de importar o tipo compartilhado de `src/types/health.ts`. Isso gera duplicação e risco de inconsistência futura.
 
-**Solução**: Usar `Deno.env.get("APP_URL")` como valor do header `Access-Control-Allow-Origin` nas funções administrativas.
-
-#### 8. Índice ausente na tabela `password_reset_tokens`
-
-A coluna `token` em `password_reset_tokens` é pesquisada com `WHERE token = ?` sem índice declarado. Com volume alto, isso pode ser lento.
-
-**Solução**: `CREATE INDEX ON password_reset_tokens(token)` via migration.
-
-#### 9. `encrypt` / `decrypt` duplicados entre `health-records-write` e `health-records-read`
-
-As funções `getKey`, `encrypt` e `decrypt` estão copiadas em dois arquivos de Edge Function. Se a lógica de criptografia precisar mudar, exige atualização em dois lugares.
-
-**Solução**: Extrair para um módulo compartilhado em `supabase/functions/_shared/crypto.ts`.
+**Arquivo**: `src/components/HealthRecordDetail.tsx`
+**Mudança**: Remover a interface local e importar `import type { HealthRecord } from "@/types/health"`.
 
 ---
 
-## Resumo das Melhorias por Esforço
+#### 5. `HealthRecordsList` deleta registros diretamente pelo cliente (sem Edge Function)
+
+Em `HealthRecordsList.tsx` (linha 25), a exclusão de registros é feita diretamente via `supabase.from("health_records").delete()`. Isso é consistente com o RLS que permite ao usuário deletar seus próprios registros. Porém, ao contrário das operações de escrita e leitura que passam pela Edge Function (com decriptação/criptografia), esta ação não garante limpeza de cache no TanStack Query de forma coordenada.
+
+O código atual chama `onDelete()` que invoca `queryClient.invalidateQueries()` — então o comportamento está correto. Este item é uma **observação de consistência**, não um bug.
+
+---
+
+#### 6. Admin: card "Senha padrão" sem link de ação rápida
+
+O card de estatísticas exibe "Senha padrão: N", mas clicar nesse número não faz nada. Uma melhoria de UX seria filtrar automaticamente a tabela ao clicar no card, mostrando apenas usuários com senha padrão.
+
+**Arquivo**: `src/pages/AdminPanel.tsx`
+**Mudança**: Tornar o card de "Senha padrão" clicável — ao clicar, aplica um filtro adicional na tabela mostrando apenas `is_default_password === true`.
+
+---
+
+### PRIORIDADE BAIXA
+
+#### 7. Título da aba do navegador (`<title>`) não é atualizado por rota
+
+O `index.html` tem `<title>Health Coach</title>` fixo. Não há uso de `document.title` ou um componente de gestão de título nas páginas. Em aplicações SPA, o ideal é refletir a rota atual no título da aba para melhor usabilidade.
+
+**Solução**: Usar um hook simples `useDocumentTitle("Bioimpedância | Health Coach")` em cada página, ou um componente utilitário leve que faz `document.title = title` via `useEffect`.
+
+---
+
+#### 8. Métricas no `HealthRecordDetail` sem formatação de 1 decimal
+
+Similar ao item 3, o modal de detalhes (`HealthRecordDetail.tsx`, linha 90) exibe os valores com `{m.value}` sem formatação. Valores como `25.5000000001%` podem aparecer dependendo do dado armazenado. Aplicar `toFixed(1)` garante consistência visual.
+
+**Arquivo**: `src/components/HealthRecordDetail.tsx` (linha 90)
+**Mudança**: `{m.value != null ? \`{Number(m.value).toFixed(1)}{m.unit} : "—"}`.
+
+---
+
+## Resumo por Esforço
 
 ```text
-ESFORÇO BAIXO (1 arquivo, < 20 linhas)
-├── 5. Corrigir placeholder do campo de busca no AdminPanel
-├── 6. Remover/corrigir card "Total com registros" enganoso
-└── 8. Adicionar índice em password_reset_tokens.token
+ESFORÇO BAIXO (1 arquivo, < 5 linhas)
+├── 1. Atualizar título/subtítulo da página de Bioimpedância
+├── 3. Corrigir decimais nas métricas dos cards (toFixed(2) → toFixed(1))
+├── 4. Remover interface HealthRecord duplicada em HealthRecordDetail
+└── 8. Formatar decimais no modal de detalhe do registro
 
 ESFORÇO MÉDIO (2-3 arquivos)
-├── 1. Resolver definitivamente o erro de salvamento de registro duplicado
-├── 2. Migrar AdminPanel para TanStack Query
-├── 4. Persistir estado de seções colapsáveis no localStorage
-└── 9. Extrair crypto helpers para módulo compartilhado
+├── 6. Card "Senha padrão" com filtro rápido no AdminPanel
+└── 7. Atualizar título da aba do navegador por rota
 
-ESFORÇO ALTO (novo componente + Edge Function)
-├── 3. Admin visualizar registros de saúde do usuário selecionado
-└── 7. Restringir CORS ao domínio de produção
+ESFORÇO ALTO (nova Edge Function + UI)
+└── 2. Admin visualizar registros de bioimpedância de um usuário
 ```
 
 ---
 
-## Qual melhoria você quer implementar?
+## Implementação Proposta
 
-As melhorias mais impactantes para implementar agora seriam:
+Todos os itens acima serão implementados de uma vez, agrupados por arquivo:
 
-**Opção A — Corrigir o bug recorrente de salvamento** (item 1): resolver de vez o conflito entre pré-validação no cliente e tratamento de erro 409 na Edge Function.
+`**src/pages/Dashboard.tsx**`
 
-**Opção B — Admin ver registros do usuário** (item 3): funcionalidade de alto valor para um coach de saúde que precisa acompanhar seus clientes.
+- Corrigir título e subtítulo (item 1)
 
-**Opção C — Múltiplas melhorias pequenas** (itens 2, 4, 5, 6): várias melhorias de baixo/médio esforço que juntas melhoram significativamente a qualidade da aplicação.
+`**src/components/HealthRecordsList.tsx**`
+
+- `toFixed(2)` → `toFixed(1)` (item 3)
+
+`**src/components/HealthRecordDetail.tsx**`
+
+- Remover interface local, importar tipo compartilhado (item 4)
+- Aplicar `toFixed(1)` nos valores exibidos (item 8)
+
+`**src/pages/AdminPanel.tsx**`
+
+- Card "Senha padrão" filtrável (item 6)
+
+**Título da aba por rota** (item 7)
+
+- Hook `useDocumentTitle` em cada página principal
