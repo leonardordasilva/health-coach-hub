@@ -1,5 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
-import { Heart, LogOut, LayoutDashboard, Users, UserCog } from "lucide-react";
+import { Heart, LogOut, ScanLine, Users, UserCog } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
     ? [{ icon: Users, label: "Usuários", to: "/admin" }]
     : [
         { icon: UserCog, label: "Perfil", to: "/perfil" },
-        { icon: LayoutDashboard, label: "Dashboard", to: "/dashboard" },
+        { icon: ScanLine, label: "Bioimpedância", to: "/dashboard" },
       ];
 
   return (
