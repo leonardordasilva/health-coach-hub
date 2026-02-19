@@ -1,12 +1,18 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+function makeCorsHeaders(req: Request): Record<string, string> {
+  const appUrl = Deno.env.get("APP_URL") ?? "*";
+  const origin = req.headers.get("Origin") ?? "";
+  const allowed = appUrl === "*" || origin === appUrl ? origin || "*" : appUrl;
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 Deno.serve(async (req) => {
+  const corsHeaders = makeCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -76,7 +82,7 @@ Deno.serve(async (req) => {
     console.error("delete-user error:", err);
     return new Response(JSON.stringify({ error: "An error occurred. Please try again." }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...makeCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

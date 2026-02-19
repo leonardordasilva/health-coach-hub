@@ -1,11 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+function makeCorsHeaders(req: Request): Record<string, string> {
+  const appUrl = Deno.env.get("APP_URL") ?? "*";
+  const origin = req.headers.get("Origin") ?? "";
+  const allowed = appUrl === "*" || origin === appUrl ? origin || "*" : appUrl;
+  return {
+    "Access-Control-Allow-Origin": allowed,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  };
+}
 
 Deno.serve(async (req) => {
+  const corsHeaders = makeCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -44,7 +50,6 @@ Deno.serve(async (req) => {
     let prompt = "";
 
     if (assessmentType === "latest" && record) {
-      // Single record assessment
       const lines = [...profileLines];
       if (record.weight) lines.push(`- Peso: ${record.weight} kg`);
       if (record.bmi) lines.push(`- IMC: ${record.bmi} (${record.bmiClassification})`);
@@ -76,8 +81,6 @@ Regras:
 - Retorne APENAS o JSON, sem texto adicional.`;
 
     } else if (assessmentType === "general" && records?.length > 0) {
-      // Multi-record historical assessment
-      // Sort records chronologically
       const sorted = [...records].sort((a: Record<string, unknown>, b: Record<string, unknown>) =>
         String(a.record_date).localeCompare(String(b.record_date))
       );
@@ -169,7 +172,7 @@ Regras:
     console.error("health-assessment error:", err);
     return new Response(JSON.stringify({ error: "An error occurred. Please try again." }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...makeCorsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

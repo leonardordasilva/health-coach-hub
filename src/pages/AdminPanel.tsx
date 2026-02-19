@@ -1,5 +1,6 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Users, Plus, Search, Trash2, RefreshCw, Eye, UserPlus, Mail, Calendar, User, TrendingUp } from "lucide-react";
+import { Users, Search, Trash2, RefreshCw, Eye, UserPlus, Mail, Calendar, User, TrendingUp } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/health";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
@@ -26,36 +27,35 @@ interface UserProfile {
 }
 
 export default function AdminPanel() {
-  const [users, setUsers] = useState<UserProfile[]>([]);
-  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-
   const [form, setForm] = useState({ email: "" });
 
-  const fetchUsers = async () => {
-    setLoading(true);
-    const { data: roleData } = await supabase.from("user_roles").select("user_id").eq("role", "user");
+  const queryClient = useQueryClient();
 
-    if (roleData && roleData.length > 0) {
-      const userIds = roleData.map((r) => r.user_id);
-      const { data: profileData, error: profileError } = await supabase
-        .from("profiles")
-        .select("id, email, name, birth_date, weight, height, is_default_password, created_at")
-        .in("id", userIds)
-        .order("created_at", { ascending: false });
-      if (!profileError && profileData) setUsers(profileData as UserProfile[]);
-    } else {
-      setUsers([]);
-    }
-    setLoading(false);
+  const fetchUsers = async (): Promise<UserProfile[]> => {
+    const { data: roleData } = await supabase.from("user_roles").select("user_id").eq("role", "user");
+    if (!roleData || roleData.length === 0) return [];
+    const userIds = roleData.map((r) => r.user_id);
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, email, name, birth_date, weight, height, is_default_password, created_at")
+      .in("id", userIds)
+      .order("created_at", { ascending: false });
+    if (profileError) throw profileError;
+    return (profileData ?? []) as UserProfile[];
   };
 
-  useEffect(() => { fetchUsers(); }, []);
+  const { data: users = [], isLoading: loading } = useQuery({
+    queryKey: ["admin-users"],
+    queryFn: fetchUsers,
+  });
+
+  const refreshUsers = () => queryClient.invalidateQueries({ queryKey: ["admin-users"] });
 
   // Build monthly growth chart data (last 6 months)
   const growthChartData = useMemo(() => {
@@ -73,8 +73,6 @@ export default function AdminPanel() {
     return months;
   }, [users]);
 
-  const totalWithRecords = users.length; // placeholder — real count would need a join query
-
   const filtered = users.filter(u =>
     u.email.toLowerCase().includes(search.toLowerCase()) ||
     (u.name ?? "").toLowerCase().includes(search.toLowerCase())
@@ -91,7 +89,7 @@ export default function AdminPanel() {
       toast.success(`Usuário criado! Senha enviada para ${form.email}`);
       setShowCreateModal(false);
       setForm({ email: "" });
-      fetchUsers();
+      refreshUsers();
     } catch (err: unknown) {
       console.error("Create user error:", err);
       toast.error("Erro ao criar usuário. Tente novamente.");
@@ -107,7 +105,7 @@ export default function AdminPanel() {
       });
       if (error) throw error;
       toast.success("Nova senha enviada por e-mail.");
-      fetchUsers();
+      refreshUsers();
     } catch (err: unknown) {
       console.error("Reset password error:", err);
       toast.error("Erro ao resetar senha. Tente novamente.");
@@ -124,7 +122,7 @@ export default function AdminPanel() {
       toast.success("Usuário excluído.");
       setDeleteUserId(null);
       setShowDetailModal(false);
-      fetchUsers();
+      refreshUsers();
     } catch (err: unknown) {
       console.error("Delete user error:", err);
       toast.error("Erro ao excluir usuário. Tente novamente.");
@@ -150,7 +148,7 @@ export default function AdminPanel() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Card className="shadow-health border-border/50">
             <CardContent className="p-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
@@ -170,19 +168,6 @@ export default function AdminPanel() {
               <div>
                 <p className="text-sm text-muted-foreground">Senha padrão</p>
                 <p className="text-2xl font-bold text-foreground">{users.filter(u => u.is_default_password).length}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="shadow-health border-border/50">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-10 h-10 rounded-xl bg-secondary-light flex items-center justify-center">
-                <UserPlus className="w-5 h-5 text-secondary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Este mês</p>
-                <p className="text-2xl font-bold text-foreground">
-                  {users.filter(u => new Date(u.created_at).getMonth() === new Date().getMonth()).length}
-                </p>
               </div>
             </CardContent>
           </Card>
@@ -221,13 +206,13 @@ export default function AdminPanel() {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar por e-mail..."
+                  placeholder="Buscar por nome ou e-mail..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9 h-9"
                 />
               </div>
-              <Button variant="outline" size="icon" onClick={fetchUsers} className="h-9 w-9 flex-shrink-0">
+              <Button variant="outline" size="icon" onClick={refreshUsers} className="h-9 w-9 flex-shrink-0">
                 <RefreshCw className="w-4 h-4" />
               </Button>
             </div>
@@ -247,10 +232,10 @@ export default function AdminPanel() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
-        <TableHead>E-mail</TableHead>
-                       <TableHead className="hidden sm:table-cell">Nome</TableHead>
-                       <TableHead className="hidden md:table-cell">Nascimento</TableHead>
-                       <TableHead>Status</TableHead>
+                      <TableHead>E-mail</TableHead>
+                      <TableHead className="hidden sm:table-cell">Nome</TableHead>
+                      <TableHead className="hidden md:table-cell">Nascimento</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -258,9 +243,9 @@ export default function AdminPanel() {
                     {filtered.map((user) => (
                       <TableRow key={user.id} className="hover:bg-muted/30">
                         <TableCell className="font-medium text-sm">{user.email}</TableCell>
-                         <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{user.name || "—"}</TableCell>
-                         <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(user.birth_date)}</TableCell>
-                         <TableCell>
+                        <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{user.name || "—"}</TableCell>
+                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(user.birth_date)}</TableCell>
+                        <TableCell>
                           {user.is_default_password ? (
                             <Badge variant="outline" className="text-warning border-warning/30 bg-warning/10 text-xs">Senha padrão</Badge>
                           ) : (
