@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,13 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const { signIn, user, profile, loading: authLoading, profileLoading } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Handle ?view=register from landing page
+  useEffect(() => {
+    const viewParam = searchParams.get("view");
+    if (viewParam === "register") setView("register");
+  }, [searchParams]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -177,6 +184,12 @@ export default function Login() {
                 className="text-sm text-primary hover:underline font-medium transition-colors"
               >
                 Esqueci minha senha
+              </Link>
+              <Link
+                to="/landing"
+                className="text-xs text-muted-foreground hover:text-primary transition-colors"
+              >
+                Saiba mais sobre o Health Coach
               </Link>
               <div className="flex items-center gap-2 w-full">
                 <div className="h-px flex-1 bg-border" />
