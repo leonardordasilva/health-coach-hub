@@ -1,125 +1,86 @@
-# Análise e Plano de Melhorias — Health Coach (Ciclo 2)
 
-## Estado Atual Verificado
+# Migração de SendGrid para Brevo
 
-Após revisão completa do código, o estado atual da aplicação está:
+## O que precisa ser feito
 
-- `AdminPanel.tsx`: Migrado para TanStack Query, placeholder de busca corrigido, card enganoso removido
-- `Dashboard.tsx`: Seções colapsáveis com persistência em `localStorage`, progresso de metas integrado no card de perfil
-- `_shared/crypto.ts`: Módulo compartilhado em uso pelas duas Edge Functions
-- `AppLayout.tsx`: Menu renomeado para "Bioimpedância" com ícone `ScanLine`
+O sistema atual usa o SendGrid para envio de e-mails em 4 funções de backend. A migração para o Brevo requer:
 
----
-
-## Melhorias Identificadas Neste Ciclo
-
-### PRIORIDADE ALTA
-
-#### 1. Título da página "Dashboard Pessoal" desatualizado
-
-O `h1` da página `Dashboard.tsx` ainda exibe **"Dashboard Pessoal"** e o subtítulo **"Acompanhe sua evolução de saúde"** — inconsistente com o novo nome do menu "Bioimpedância".
-
-**Arquivo**: `src/pages/Dashboard.tsx` (linha 174)
-**Mudança**: Atualizar título para **"Bioimpedância"** e subtítulo para **"Acompanhe sua composição corporal"**.
+1. **Configurar a chave de API do Brevo** como segredo no backend (a chave `SENDGRID_API_KEY` existente será substituída por `BREVO_API_KEY`)
+2. **Atualizar as 4 funções de backend** que fazem chamadas de e-mail
 
 ---
 
-#### 3. Número de decimais excessivo nas métricas dos cards de registro
+## Diferenças entre a API do SendGrid e do Brevo
 
-Em `HealthRecordsList.tsx`, a função `Metric` exibe os valores com `toFixed(2)` (ex: `70.00 kg`, `25.50%`). Isso ocupa espaço desnecessário e prejudica a legibilidade visual. O ideal para exibição em cards compactos seria 1 decimal (ex: `70.0 kg`, `25.5%`).
-
-**Arquivo**: `src/components/HealthRecordsList.tsx` (linha 128)
-**Mudança**: Alterar `toFixed(2)` para `toFixed(1)`.
-
----
-
-### PRIORIDADE MÉDIA
-
-#### 4. `HealthRecordDetail` redefine a interface `HealthRecord` localmente
-
-O componente `src/components/HealthRecordDetail.tsx` declara sua própria interface `HealthRecord` (linhas 7–18) em vez de importar o tipo compartilhado de `src/types/health.ts`. Isso gera duplicação e risco de inconsistência futura.
-
-**Arquivo**: `src/components/HealthRecordDetail.tsx`
-**Mudança**: Remover a interface local e importar `import type { HealthRecord } from "@/types/health"`.
+| Aspecto | SendGrid | Brevo |
+|---|---|---|
+| Endpoint | `https://api.sendgrid.com/v3/mail/send` | `https://api.brevo.com/v3/smtp/email` |
+| Autenticação | Header: `Authorization: Bearer KEY` | Header: `api-key: KEY` |
+| Remetente | `from: { email, name }` | `sender: { email, name }` |
+| Destinatário | `to: [{ email }]` | `to: [{ email }]` (igual) |
+| Corpo HTML | `content: [{ type: "text/html", value: "..." }]` | `htmlContent: "..."` |
+| Assunto | `subject: "..."` | `subject: "..."` (igual) |
 
 ---
 
-#### 5. `HealthRecordsList` deleta registros diretamente pelo cliente (sem Edge Function)
+## Funções de backend a atualizar
 
-Em `HealthRecordsList.tsx` (linha 25), a exclusão de registros é feita diretamente via `supabase.from("health_records").delete()`. Isso é consistente com o RLS que permite ao usuário deletar seus próprios registros. Porém, ao contrário das operações de escrita e leitura que passam pela Edge Function (com decriptação/criptografia), esta ação não garante limpeza de cache no TanStack Query de forma coordenada.
+### 1. `supabase/functions/create-user/index.ts`
+- E-mail de boas-vindas para novo usuário criado pelo admin
+- Substitui bloco `sendgridKey` → `brevoKey`
+- Adapta payload para formato Brevo
 
-O código atual chama `onDelete()` que invoca `queryClient.invalidateQueries()` — então o comportamento está correto. Este item é uma **observação de consistência**, não um bug.
+### 2. `supabase/functions/self-register/index.ts`
+- E-mail de boas-vindas para auto-cadastro
+- Mesmo ajuste de payload
 
----
+### 3. `supabase/functions/reset-password/index.ts`
+- E-mail com link de confirmação de reset de senha
+- Mesmo ajuste de payload
 
-#### 6. Admin: card "Senha padrão" sem link de ação rápida
-
-O card de estatísticas exibe "Senha padrão: N", mas clicar nesse número não faz nada. Uma melhoria de UX seria filtrar automaticamente a tabela ao clicar no card, mostrando apenas usuários com senha padrão.
-
-**Arquivo**: `src/pages/AdminPanel.tsx`
-**Mudança**: Tornar o card de "Senha padrão" clicável — ao clicar, aplica um filtro adicional na tabela mostrando apenas `is_default_password === true`.
-
----
-
-### PRIORIDADE BAIXA
-
-#### 7. Título da aba do navegador (`<title>`) não é atualizado por rota
-
-O `index.html` tem `<title>Health Coach</title>` fixo. Não há uso de `document.title` ou um componente de gestão de título nas páginas. Em aplicações SPA, o ideal é refletir a rota atual no título da aba para melhor usabilidade.
-
-**Solução**: Usar um hook simples `useDocumentTitle("Bioimpedância | Health Coach")` em cada página, ou um componente utilitário leve que faz `document.title = title` via `useEffect`.
+### 4. `supabase/functions/confirm-password-reset/index.ts`
+- E-mail com nova senha temporária gerada após confirmação
+- Mesmo ajuste de payload
 
 ---
 
-#### 8. Métricas no `HealthRecordDetail` sem formatação de 1 decimal
+## Configuração de segredo necessária
 
-Similar ao item 3, o modal de detalhes (`HealthRecordDetail.tsx`, linha 90) exibe os valores com `{m.value}` sem formatação. Valores como `25.5000000001%` podem aparecer dependendo do dado armazenado. Aplicar `toFixed(1)` garante consistência visual.
+Antes de atualizar o código, será solicitado ao usuário que insira sua **Brevo API Key** (gerada em `app.brevo.com → Settings → API Keys`). O segredo será armazenado como `BREVO_API_KEY`.
 
-**Arquivo**: `src/components/HealthRecordDetail.tsx` (linha 90)
-**Mudança**: `{m.value != null ? \`{Number(m.value).toFixed(1)}{m.unit} : "—"}`.
+O segredo `SENDGRID_API_KEY` pode ser mantido inativo (não será removido automaticamente) — o código simplesmente deixará de referenciá-lo.
 
 ---
 
-## Resumo por Esforço
+## Detalhes técnicos
 
-```text
-ESFORÇO BAIXO (1 arquivo, < 5 linhas)
-├── 1. Atualizar título/subtítulo da página de Bioimpedância
-├── 3. Corrigir decimais nas métricas dos cards (toFixed(2) → toFixed(1))
-├── 4. Remover interface HealthRecord duplicada em HealthRecordDetail
-└── 8. Formatar decimais no modal de detalhe do registro
-
-ESFORÇO MÉDIO (2-3 arquivos)
-├── 6. Card "Senha padrão" com filtro rápido no AdminPanel
-└── 7. Atualizar título da aba do navegador por rota
-
-ESFORÇO ALTO (nova Edge Function + UI)
-└── 2. Admin visualizar registros de bioimpedância de um usuário
+### Formato do payload Brevo (exemplo)
+```json
+{
+  "sender": { "email": "lrodriguesdasilva@gmail.com", "name": "Health Coach" },
+  "to": [{ "email": "usuario@exemplo.com" }],
+  "subject": "Bem-vindo ao Health Coach!",
+  "htmlContent": "<div>...</div>"
+}
 ```
 
+### Helper compartilhado
+Como as 4 funções têm lógica de envio idêntica, cada uma terá uma função auxiliar `sendEmail()` interna para evitar duplicação de código.
+
 ---
 
-## Implementação Proposta
+## Arquivos a modificar
 
-Todos os itens acima serão implementados de uma vez, agrupados por arquivo:
+- `supabase/functions/create-user/index.ts`
+- `supabase/functions/self-register/index.ts`
+- `supabase/functions/reset-password/index.ts`
+- `supabase/functions/confirm-password-reset/index.ts`
 
-`**src/pages/Dashboard.tsx**`
+## O que não muda
 
-- Corrigir título e subtítulo (item 1)
-
-`**src/components/HealthRecordsList.tsx**`
-
-- `toFixed(2)` → `toFixed(1)` (item 3)
-
-`**src/components/HealthRecordDetail.tsx**`
-
-- Remover interface local, importar tipo compartilhado (item 4)
-- Aplicar `toFixed(1)` nos valores exibidos (item 8)
-
-`**src/pages/AdminPanel.tsx**`
-
-- Card "Senha padrão" filtrável (item 6)
-
-**Título da aba por rota** (item 7)
-
-- Hook `useDocumentTitle` em cada página principal
+- Conteúdo HTML dos e-mails
+- Endereço remetente (`lrodriguesdasilva@gmail.com`)
+- Lógica de geração de senha e tokens
+- Toda a lógica de autenticação e autorização
+- Rate limiting
+- Políticas de segurança do banco de dados
