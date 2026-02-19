@@ -113,7 +113,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const sendgridKey = Deno.env.get("SENDGRID_API_KEY");
+    const brevoKey = Deno.env.get("BREVO_API_KEY");
 
     console.log(`reset-password: isAdminCall=${isAdminCall}, targetUserId=${targetUserId}`);
 
@@ -137,32 +137,29 @@ Deno.serve(async (req) => {
 
     const confirmUrl = `${appUrl}/confirmar-reset?token=${token}`;
 
-    if (sendgridKey && targetEmail) {
-      await fetch("https://api.sendgrid.com/v3/mail/send", {
+    if (brevoKey && targetEmail) {
+      await fetch("https://api.brevo.com/v3/smtp/email", {
         method: "POST",
-        headers: { "Authorization": `Bearer ${sendgridKey}`, "Content-Type": "application/json" },
+        headers: { "api-key": brevoKey, "Content-Type": "application/json" },
         body: JSON.stringify({
-          from: { email: "lrodriguesdasilva@gmail.com", name: "Health Coach" },
+          sender: { email: "lrodriguesdasilva@gmail.com", name: "Health Coach" },
           to: [{ email: targetEmail }],
           subject: "Redefinição de senha — Health Coach",
-          content: [{
-            type: "text/html",
-            value: `
-              <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-                <h2 style="color: #2D9B6B;">Health Coach</h2>
-                <p>Recebemos uma solicitação de redefinição de senha para sua conta.</p>
-                <p>Clique no botão abaixo para gerar sua nova senha temporária:</p>
-                <div style="text-align: center; margin: 24px 0;">
-                  <a href="${confirmUrl}"
-                     style="background: #2D9B6B; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
-                    Gerar nova senha
-                  </a>
-                </div>
-                <p style="color: #666; font-size: 13px;">Este link é válido por <strong>1 hora</strong>. Após isso, será necessário solicitar novamente.</p>
-                <p style="color: #999; font-size: 12px;">Se você não solicitou a redefinição de senha, ignore este e-mail.</p>
+          htmlContent: `
+            <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+              <h2 style="color: #2D9B6B;">Health Coach</h2>
+              <p>Recebemos uma solicitação de redefinição de senha para sua conta.</p>
+              <p>Clique no botão abaixo para gerar sua nova senha temporária:</p>
+              <div style="text-align: center; margin: 24px 0;">
+                <a href="${confirmUrl}"
+                   style="background: #2D9B6B; color: white; padding: 12px 28px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">
+                  Gerar nova senha
+                </a>
               </div>
-            `,
-          }],
+              <p style="color: #666; font-size: 13px;">Este link é válido por <strong>1 hora</strong>. Após isso, será necessário solicitar novamente.</p>
+              <p style="color: #999; font-size: 12px;">Se você não solicitou a redefinição de senha, ignore este e-mail.</p>
+            </div>
+          `,
         }),
       });
     }

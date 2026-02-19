@@ -103,32 +103,29 @@ Deno.serve(async (req) => {
       .eq("id", userId);
 
     // Send email with new temp password
-    const sendgridKey = Deno.env.get("SENDGRID_API_KEY");
-    if (sendgridKey && profile?.email) {
-      await fetch("https://api.sendgrid.com/v3/mail/send", {
+    const brevoKey = Deno.env.get("BREVO_API_KEY");
+    if (brevoKey && profile?.email) {
+      await fetch("https://api.brevo.com/v3/smtp/email", {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${sendgridKey}`,
+          "api-key": brevoKey,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: { email: "lrodriguesdasilva@gmail.com", name: "Health Coach" },
+          sender: { email: "lrodriguesdasilva@gmail.com", name: "Health Coach" },
           to: [{ email: profile.email }],
           subject: "Sua nova senha temporária — Health Coach",
-          content: [{
-            type: "text/html",
-            value: `
-              <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
-                <h2 style="color: #2D9B6B;">Health Coach</h2>
-                <p>Sua nova senha temporária foi gerada com sucesso. Use-a para acessar o sistema:</p>
-                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: center;">
-                  <code style="font-size: 18px; font-weight: bold; color: #15803d; letter-spacing: 2px;">${newPassword}</code>
-                </div>
-                <p style="color: #666; font-size: 14px;">Você será solicitado a trocar esta senha no próximo acesso.</p>
-                <p style="color: #999; font-size: 12px;">Se você não solicitou esta alteração, entre em contato com o suporte.</p>
+          htmlContent: `
+            <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+              <h2 style="color: #2D9B6B;">Health Coach</h2>
+              <p>Sua nova senha temporária foi gerada com sucesso. Use-a para acessar o sistema:</p>
+              <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px; margin: 16px 0; text-align: center;">
+                <code style="font-size: 18px; font-weight: bold; color: #15803d; letter-spacing: 2px;">${newPassword}</code>
               </div>
-            `,
-          }],
+              <p style="color: #666; font-size: 14px;">Você será solicitado a trocar esta senha no próximo acesso.</p>
+              <p style="color: #999; font-size: 12px;">Se você não solicitou esta alteração, entre em contato com o suporte.</p>
+            </div>
+          `,
         }),
       });
     }
