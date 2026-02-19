@@ -1,18 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { encrypt } from "../_shared/crypto.ts";
 
-function makeCorsHeaders(req: Request): Record<string, string> {
-  const appUrl = Deno.env.get("APP_URL") ?? "*";
-  const origin = req.headers.get("Origin") ?? "";
-  const allowed = appUrl === "*" || origin === appUrl ? origin || "*" : appUrl;
-  return {
-    "Access-Control-Allow-Origin": allowed,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  };
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 Deno.serve(async (req) => {
-  const corsHeaders = makeCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -48,14 +42,13 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Encrypt all sensitive fields including weight
     const sensitiveData = JSON.stringify({ weight: Number(weight), body_fat, water, basal_metabolism, visceral_fat, muscle, protein, bone_mass });
     const encryptedData = await encrypt(sensitiveData, encryptionKey);
 
     const payload = {
       user_id: userId,
       record_date,
-      weight: 0, // placeholder — real value is encrypted
+      weight: 0,
       body_fat: null,
       water: null,
       basal_metabolism: null,
@@ -68,7 +61,6 @@ Deno.serve(async (req) => {
 
     let error;
     if (id) {
-      // Update — verify ownership via RLS
       ({ error } = await supabase.from("health_records").update(payload).eq("id", id).eq("user_id", userId));
     } else {
       ({ error } = await supabase.from("health_records").insert(payload));
@@ -81,7 +73,6 @@ Deno.serve(async (req) => {
     });
   } catch (err: unknown) {
     console.error("health-records-write error:", err);
-    const corsHeaders = makeCorsHeaders(req);
     const code = (err as { code?: string })?.code;
     const isDuplicate = code === "23505";
     return new Response(

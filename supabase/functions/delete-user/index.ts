@@ -1,18 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "npm:zod@3";
 
-function makeCorsHeaders(req: Request): Record<string, string> {
-  const appUrl = Deno.env.get("APP_URL") ?? "*";
-  const origin = req.headers.get("Origin") ?? "";
-  const allowed = appUrl === "*" || origin === appUrl ? origin || "*" : appUrl;
-  return {
-    "Access-Control-Allow-Origin": allowed,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  };
-}
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 Deno.serve(async (req) => {
-  const corsHeaders = makeCorsHeaders(req);
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
@@ -41,11 +35,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    const requesterId = user.id;
     const { data: roleRow } = await supabaseAdmin
       .from("user_roles")
       .select("role")
-      .eq("user_id", requesterId)
+      .eq("user_id", user.id)
       .single();
 
     if (roleRow?.role !== "admin") {
@@ -68,10 +61,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { userId } = validated;
-    if (!userId) throw new Error("userId is required");
-
-    const { error } = await supabaseAdmin.auth.admin.deleteUser(userId);
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(validated.userId);
     if (error) throw error;
 
     return new Response(JSON.stringify({ success: true }), {
@@ -81,7 +71,7 @@ Deno.serve(async (req) => {
     console.error("delete-user error:", err);
     return new Response(JSON.stringify({ error: "An error occurred. Please try again." }), {
       status: 500,
-      headers: { ...makeCorsHeaders(req), "Content-Type": "application/json" },
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
