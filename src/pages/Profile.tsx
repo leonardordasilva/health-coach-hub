@@ -11,8 +11,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { User, Camera, Save, AlertTriangle, Target } from "lucide-react";
 import { useAvatarUpload } from "@/hooks/useAvatarUpload";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export default function Profile() {
+  useDocumentTitle("Meu Perfil | Health Coach");
   const { profile, refreshProfile, isProfileComplete } = useAuth();
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);

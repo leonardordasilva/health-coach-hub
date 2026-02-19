@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { Users, Search, Trash2, RefreshCw, Eye, UserPlus, Mail, Calendar, User, TrendingUp } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/health";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 interface UserProfile {
   id: string;
@@ -27,7 +28,9 @@ interface UserProfile {
 }
 
 export default function AdminPanel() {
+  useDocumentTitle("Painel de Usuários | Health Coach");
   const [search, setSearch] = useState("");
+  const [filterDefaultPassword, setFilterDefaultPassword] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -73,10 +76,12 @@ export default function AdminPanel() {
     return months;
   }, [users]);
 
-  const filtered = users.filter(u =>
-    u.email.toLowerCase().includes(search.toLowerCase()) ||
-    (u.name ?? "").toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = users.filter(u => {
+    const matchesSearch = u.email.toLowerCase().includes(search.toLowerCase()) ||
+      (u.name ?? "").toLowerCase().includes(search.toLowerCase());
+    const matchesFilter = !filterDefaultPassword || u.is_default_password;
+    return matchesSearch && matchesFilter;
+  });
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,15 +165,21 @@ export default function AdminPanel() {
               </div>
             </CardContent>
           </Card>
-          <Card className="shadow-health border-border/50">
+          <Card
+            className={`shadow-health border-border/50 cursor-pointer transition-all hover:shadow-md ${filterDefaultPassword ? "ring-2 ring-warning/50 bg-warning/5" : ""}`}
+            onClick={() => setFilterDefaultPassword(p => !p)}
+          >
             <CardContent className="p-4 flex items-center gap-4">
               <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
                 <Mail className="w-5 h-5 text-warning" />
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="text-sm text-muted-foreground">Senha padrão</p>
                 <p className="text-2xl font-bold text-foreground">{users.filter(u => u.is_default_password).length}</p>
               </div>
+              {filterDefaultPassword && (
+                <Badge variant="outline" className="text-warning border-warning/30 bg-warning/10 text-xs">Filtro ativo</Badge>
+              )}
             </CardContent>
           </Card>
         </div>

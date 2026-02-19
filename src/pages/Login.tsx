@@ -9,12 +9,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "sonner";
 import { Heart, Eye, EyeOff, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { z } from "zod";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 type View = "login" | "register" | "email-exists" | "register-success";
 
 const emailSchema = z.string().email();
 
 export default function Login() {
+  useDocumentTitle("Login | Health Coach");
   const [view, setView] = useState<View>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
