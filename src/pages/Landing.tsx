@@ -77,6 +77,7 @@ export default function Landing() {
         </div>
       </header>
 
+      <main>
       {/* Hero */}
       <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-24 text-center">
         <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
@@ -160,6 +161,8 @@ export default function Landing() {
           </Card>
         </motion.div>
       </section>
+
+      </main>
 
       {/* Footer */}
       <footer className="border-t border-border/50 py-8">
