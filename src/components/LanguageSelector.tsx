@@ -23,7 +23,7 @@ export default function LanguageSelector({ className }: Props) {
           className={cn(
             "px-2 py-1 rounded-md text-xs font-semibold transition-all",
             language === opt.value
-              ? "bg-primary text-primary-foreground shadow-sm"
+              ? "bg-accent-foreground text-primary-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground hover:bg-muted"
           )}
         >
