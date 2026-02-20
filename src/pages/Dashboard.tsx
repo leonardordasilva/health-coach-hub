@@ -41,16 +41,18 @@ export default function Dashboard() {
   const [editingRecord, setEditingRecord] = useState<HealthRecord | null>(null);
   const [detailRecord, setDetailRecord] = useState<HealthRecord | null>(null);
 
-  const chartMetrics = useMemo(() => [
+  const allChartMetrics = useMemo(() => [
     { key: "weight" as keyof HealthRecord, label: t("dashboard.weight"), unit: "kg" },
     { key: "body_fat" as keyof HealthRecord, label: t("dashboard.bodyFat"), unit: "%" },
     { key: "muscle" as keyof HealthRecord, label: t("dashboard.muscle"), unit: "kg" },
     { key: "water" as keyof HealthRecord, label: t("dashboard.water"), unit: "%" },
     { key: "protein" as keyof HealthRecord, label: t("dashboard.protein"), unit: "%" },
+    { key: "visceral_fat" as keyof HealthRecord, label: t("dashboard.visceralFat"), unit: "" },
+    { key: "basal_metabolism" as keyof HealthRecord, label: t("dashboard.basalMetabolism"), unit: "kcal" },
+    { key: "bone_mass" as keyof HealthRecord, label: t("dashboard.boneMass"), unit: "kg" },
   ], [t]);
 
-  const [selectedChartMetric, setSelectedChartMetric] = useState(chartMetrics[0]);
-  useEffect(() => { setSelectedChartMetric(chartMetrics[0]); }, [chartMetrics]);
+  const [selectedChartMetric, setSelectedChartMetric] = useState(allChartMetrics[0]);
 
   const deltaItems = useMemo(() => [
     { label: t("dashboard.weight"), unit: "kg", field: "weight" as keyof HealthRecord, isPositiveGood: false },
@@ -66,6 +68,13 @@ export default function Dashboard() {
   const [recordsOpen, setRecordsOpen] = useState(true);
 
   const { data: records = [], isLoading: loading } = useQuery({ queryKey: ["health-records"], queryFn: fetchHealthRecords });
+
+  const chartMetrics = useMemo(() =>
+    allChartMetrics.filter(m => records.some(r => r[m.key] != null)),
+    [allChartMetrics, records]
+  );
+  useEffect(() => { if (chartMetrics.length > 0 && !chartMetrics.find(m => m.key === selectedChartMetric.key)) setSelectedChartMetric(chartMetrics[0]); }, [chartMetrics]);
+
   const age = profile?.birth_date ? calculateAge(profile.birth_date) : null;
   const latestRecord = records[0];
 
