@@ -84,6 +84,8 @@ const pt = {
   // Register success
   "login.registerSuccessTitle": "Conta criada!",
   "login.registerSuccessMsg": "Enviamos um e-mail para <strong>{{email}}</strong> com sua senha temporária. Acesse sua caixa de entrada e faça login.",
+  "login.registerSuccessMsgBefore": "Enviamos um e-mail para",
+  "login.registerSuccessMsgAfter": "com sua senha temporária. Acesse sua caixa de entrada e faça login.",
   "login.goToLogin": "Ir para o login",
   // Email exists
   "login.emailExistsTitle": "E-mail já cadastrado",

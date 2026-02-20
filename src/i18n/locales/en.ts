@@ -80,6 +80,8 @@ const en: Record<string, string> = {
   "login.registerError": "An error occurred. Try again.",
   "login.registerSuccessTitle": "Account created!",
   "login.registerSuccessMsg": "We sent an email to <strong>{{email}}</strong> with your temporary password. Check your inbox and sign in.",
+  "login.registerSuccessMsgBefore": "We sent an email to",
+  "login.registerSuccessMsgAfter": "with your temporary password. Check your inbox and sign in.",
   "login.goToLogin": "Go to login",
   "login.emailExistsTitle": "Email already registered",
   "login.emailExistsDescription": "This email already has an account. You can sign in normally or reset your password.",
