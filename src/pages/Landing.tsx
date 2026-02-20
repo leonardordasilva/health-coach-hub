@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
@@ -18,15 +17,6 @@ import {
   BarChart3,
   ArrowRight,
 } from "lucide-react";
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" as const },
-  }),
-};
 
 const featureIcons = [Scale, Activity, TrendingUp, Brain, Target, User];
 const stepIcons = [UserPlus, ClipboardList, BarChart3];
@@ -94,25 +84,25 @@ export default function Landing() {
           {t("landing.heroSubtitle")}
         </p>
 
-        <motion.div className="flex flex-col sm:flex-row items-center justify-center gap-3" initial="hidden" animate="visible" variants={fadeUp} custom={3}>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 animate-fade-up" style={{ animationDelay: "0.3s", animationFillMode: "both" }}>
           <Button size="lg" className="gradient-hero text-primary-foreground font-semibold shadow-health hover:opacity-90 h-12 px-8 text-base" asChild>
             <Link to="/login?view=register">{t("landing.startNow")}<ArrowRight className="w-4 h-4 ml-2" /></Link>
           </Button>
           <Button variant="outline" size="lg" className="h-12 px-8 text-base" asChild>
             <Link to="/login">{t("landing.haveAccount")}</Link>
           </Button>
-        </motion.div>
+        </div>
       </section>
 
       {/* Features */}
       <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pb-24">
-        <motion.div className="text-center mb-14" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={fadeUp} custom={0}>
+        <div className="text-center mb-14">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">{t("landing.featuresTitle")}</h2>
           <p className="text-muted-foreground text-lg max-w-xl mx-auto">{t("landing.featuresSubtitle")}</p>
-        </motion.div>
+        </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {features.map((feature, i) => (
-            <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={fadeUp} custom={i}>
+            <div key={i}>
               <Card className="h-full gradient-card shadow-health border-border/50 hover:shadow-glow transition-shadow duration-300">
                 <CardContent className="p-6">
                   <div className="w-11 h-11 rounded-xl gradient-hero flex items-center justify-center mb-4">
@@ -122,44 +112,42 @@ export default function Landing() {
                   <p className="text-sm text-muted-foreground leading-relaxed">{feature.description}</p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
 
       {/* How it works */}
       <section className="relative max-w-4xl mx-auto px-4 sm:px-6 pb-24">
-        <motion.div className="text-center mb-14" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={fadeUp} custom={0}>
+        <div className="text-center mb-14">
           <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">{t("landing.howItWorksTitle")}</h2>
           <p className="text-muted-foreground text-lg">{t("landing.howItWorksSubtitle")}</p>
-        </motion.div>
+        </div>
         <div className="grid sm:grid-cols-3 gap-8">
           {steps.map((step, i) => (
-            <motion.div key={i} className="text-center" initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-60px" }} variants={fadeUp} custom={i}>
+            <div key={i} className="text-center">
               <div className="w-14 h-14 rounded-full gradient-hero flex items-center justify-center mx-auto mb-4 shadow-health">
                 <step.icon className="w-6 h-6 text-primary-foreground" />
               </div>
               <div className="text-sm font-bold text-primary mb-1">{t("landing.step")} {i + 1}</div>
               <h3 className="font-semibold text-foreground text-lg mb-1.5">{step.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
-            </motion.div>
+            </div>
           ))}
         </div>
       </section>
 
       {/* CTA */}
       <section className="relative max-w-3xl mx-auto px-4 sm:px-6 pb-24">
-        <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-80px" }} variants={fadeUp} custom={0}>
-          <Card className="gradient-card shadow-glow border-border/50 overflow-hidden">
-            <CardContent className="p-8 sm:p-12 text-center">
-              <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">{t("landing.ctaTitle")}</h2>
-              <p className="text-muted-foreground mb-6 max-w-md mx-auto">{t("landing.ctaSubtitle")}</p>
-              <Button size="lg" className="gradient-hero text-primary-foreground font-semibold shadow-health hover:opacity-90 h-12 px-8 text-base" asChild>
-                <Link to="/login?view=register">{t("landing.ctaButton")}<ArrowRight className="w-4 h-4 ml-2" /></Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
+        <Card className="gradient-card shadow-glow border-border/50 overflow-hidden">
+          <CardContent className="p-8 sm:p-12 text-center">
+            <h2 className="text-2xl sm:text-3xl font-bold text-foreground mb-3">{t("landing.ctaTitle")}</h2>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto">{t("landing.ctaSubtitle")}</p>
+            <Button size="lg" className="gradient-hero text-primary-foreground font-semibold shadow-health hover:opacity-90 h-12 px-8 text-base" asChild>
+              <Link to="/login?view=register">{t("landing.ctaButton")}<ArrowRight className="w-4 h-4 ml-2" /></Link>
+            </Button>
+          </CardContent>
+        </Card>
       </section>
 
       </main>
