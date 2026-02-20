@@ -185,8 +185,8 @@ export default function AdminPanel() {
                   <TableHeader>
                     <TableRow className="hover:bg-transparent">
                       <TableHead>{t("admin.email")}</TableHead>
-                      <TableHead className="hidden md:table-cell">{t("admin.name")}</TableHead>
-                      <TableHead className="hidden md:table-cell">{t("admin.birthDate")}</TableHead>
+                      <TableHead>{t("admin.name")}</TableHead>
+                      <TableHead>{t("admin.birthDate")}</TableHead>
                       <TableHead>{t("admin.status")}</TableHead>
                       <TableHead className="text-right">{t("admin.actions")}</TableHead>
                     </TableRow>
@@ -195,8 +195,8 @@ export default function AdminPanel() {
                     {filtered.map((user) => (
                       <TableRow key={user.id} className="hover:bg-muted/30">
                         <TableCell className="font-medium text-sm">{user.email}</TableCell>
-                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{user.name || "—"}</TableCell>
-                        <TableCell className="hidden md:table-cell text-sm text-muted-foreground">{formatDate(user.birth_date, language)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{user.name || "—"}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{formatDate(user.birth_date, language)}</TableCell>
                         <TableCell>
                           {user.is_default_password ? (
                             <Badge variant="outline" className="text-warning border-warning/30 bg-warning/10 text-xs">{t("admin.defaultPassword")}</Badge>
