@@ -80,19 +80,19 @@ export default function Landing() {
       <main>
       {/* Hero */}
       <section className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-20 pb-24 text-center">
-        <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0}>
+        <div>
           <div className="w-20 h-20 rounded-2xl gradient-hero flex items-center justify-center shadow-glow mx-auto mb-6">
             <Heart className="w-10 h-10 text-primary-foreground" />
           </div>
-        </motion.div>
+        </div>
 
-        <motion.h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground mb-5" initial="hidden" animate="visible" variants={fadeUp} custom={1}>
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-foreground mb-5">
           {t("landing.heroTitle1")}<span className="text-gradient">{t("landing.heroTitle2")}</span>
-        </motion.h1>
+        </h1>
 
-        <motion.p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10" initial="hidden" animate="visible" variants={fadeUp} custom={2}>
+        <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
           {t("landing.heroSubtitle")}
-        </motion.p>
+        </p>
 
         <motion.div className="flex flex-col sm:flex-row items-center justify-center gap-3" initial="hidden" animate="visible" variants={fadeUp} custom={3}>
           <Button size="lg" className="gradient-hero text-primary-foreground font-semibold shadow-health hover:opacity-90 h-12 px-8 text-base" asChild>
