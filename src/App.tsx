@@ -16,7 +16,7 @@ const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Profile = lazy(() => import("./pages/Profile"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const Landing = lazy(() => import("./pages/Landing"));
+import Landing from "./pages/Landing";
 
 const queryClient = new QueryClient();
 
