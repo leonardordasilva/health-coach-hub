@@ -165,7 +165,9 @@ export default function Login() {
                 <div className="w-14 h-14 rounded-full bg-success-light flex items-center justify-center">
                   <Mail className="w-7 h-7 text-success" />
                 </div>
-                <p className="text-center text-sm text-muted-foreground" dangerouslySetInnerHTML={{ __html: t("login.registerSuccessMsg", { email: registerEmail }) }} />
+                <p className="text-center text-sm text-muted-foreground">
+                  {t("login.registerSuccessMsgBefore")} <strong>{registerEmail}</strong> {t("login.registerSuccessMsgAfter")}
+                </p>
               </div>
             </CardContent>
             <CardFooter className="flex justify-center pt-0">
