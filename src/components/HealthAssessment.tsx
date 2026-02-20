@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/index";
-import { Sparkles, ThumbsUp, ThumbsDown, AlertTriangle, Lightbulb, Loader2, ChevronDown, ChevronUp, ClipboardList, History } from "lucide-react";
+import { Sparkles, ThumbsUp, ThumbsDown, AlertTriangle, Lightbulb, Loader2, ChevronDown, ChevronUp, ClipboardList, History, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { calculateBMI, calculateBodyAge, calculateBodyType, formatMonthYear } from "@/lib/health";
 import type { HealthRecord } from "@/types/health";
@@ -10,6 +10,7 @@ interface Profile { height: number | null; birth_date: string | null; age: numbe
 interface Assessment { positivos: string[]; negativos: string[]; atencao: string[]; sugestoes: string[]; }
 type AssessmentType = "latest" | "general";
 interface Props { record: HealthRecord; allRecords: HealthRecord[]; profile: Profile; }
+interface HistoryEntry { id: string; record_date: string; created_at: string; assessment: Assessment; }
 
 const recordSnapshot = (r: HealthRecord) => JSON.stringify([r.id, r.record_date, r.weight, r.body_fat, r.water, r.basal_metabolism, r.visceral_fat, r.muscle, r.protein, r.bone_mass]);
 const snapshotLatest = (r: HealthRecord) => recordSnapshot(r);
@@ -31,6 +32,12 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
   const [activeType, setActiveType] = useState<AssessmentType | null>(null);
   const [assessments, setAssessments] = useState<Partial<Record<AssessmentType, Assessment>>>({});
   const [snapshots, setSnapshots] = useState<Partial<Record<AssessmentType, string>>>({});
+
+  // History state
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadCache = async () => {
@@ -69,9 +76,38 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
     await callAPI(type);
   };
 
+  const archiveCurrentAssessment = async (type: AssessmentType) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    const currentAssessment = assessments[type];
+    const currentSnap = snapshots[type];
+    if (!currentAssessment || !currentSnap) return;
+
+    // Extract record_date from snapshot
+    let recordDate: string;
+    try {
+      const parsed = JSON.parse(currentSnap);
+      recordDate = parsed[1]; // [id, record_date, ...]
+    } catch {
+      recordDate = record.record_date;
+    }
+
+    await supabase.from("health_assessment_history").insert({
+      user_id: user.id,
+      assessment_type: type,
+      record_date: recordDate,
+      data_snapshot: currentSnap,
+      assessment: currentAssessment as any,
+    });
+  };
+
   const saveToDB = async (type: AssessmentType, snap: string, assessment: Assessment) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
+    // Archive existing assessment before overwriting (only if snapshot changed)
+    if (assessments[type] && snapshots[type] && snapshots[type] !== snap) {
+      await archiveCurrentAssessment(type);
+    }
     await supabase.from("health_assessment_cache").upsert([{ user_id: user.id, assessment_type: type, data_snapshot: snap, assessment: assessment as any }], { onConflict: "user_id,assessment_type" });
   };
 
@@ -84,16 +120,56 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
       const { data, error } = await supabase.functions.invoke("health-assessment", { body });
       if (error) throw error;
       const snap = currentSnapshot(type);
+      await saveToDB(type, snap, data.assessment);
       setAssessments(prev => ({ ...prev, [type]: data.assessment }));
       setSnapshots(prev => ({ ...prev, [type]: snap }));
-      await saveToDB(type, snap, data.assessment);
       setExpanded(true);
     } catch (err) { console.error(err); toast.error(t("healthAssessment.error")); setActiveType(null); } finally { setLoading(false); }
+  };
+
+  const loadHistory = async () => {
+    if (historyEntries.length > 0) { setShowHistory(h => !h); return; }
+    setHistoryLoading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data, error } = await supabase
+        .from("health_assessment_history")
+        .select("id, record_date, created_at, assessment")
+        .eq("user_id", user.id)
+        .eq("assessment_type", "latest")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setHistoryEntries((data ?? []).map(d => ({ ...d, assessment: d.assessment as unknown as Assessment })));
+      setShowHistory(true);
+    } catch (err) { console.error(err); } finally { setHistoryLoading(false); }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleDateString(language === "pt" ? "pt-BR" : language === "es" ? "es-ES" : "en-US", {
+      day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+    });
   };
 
   const assessment = activeType ? assessments[activeType] ?? null : null;
   const hasDataChanged = activeType ? dataChangedFor(activeType) : false;
   const hasData = assessment && sections.some(s => (assessment[s.key]?.length ?? 0) > 0);
+
+  const renderAssessmentSections = (a: Assessment) => (
+    <div className="space-y-2.5 animate-fade-in">
+      {sections.map((s) => {
+        const items = a[s.key] ?? [];
+        if (items.length === 0) return null;
+        return (
+          <div key={s.key} className={`rounded-xl border p-3.5 ${s.bgClass}`}>
+            <div className="flex items-center gap-2 mb-2.5"><div className={`w-7 h-7 rounded-lg ${s.iconBg} flex items-center justify-center flex-shrink-0`}><s.icon className={`w-3.5 h-3.5 ${s.colorClass}`} /></div><p className={`text-sm font-semibold ${s.colorClass}`}>{s.label}</p></div>
+            <ul className="space-y-1.5">{items.map((item, i) => <li key={i} className="flex items-start gap-2 text-sm text-foreground"><span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.colorClass.replace("text-", "bg-")}`} />{item}</li>)}</ul>
+          </div>
+        );
+      })}
+    </div>
+  );
 
   if (!activeType) {
     if (cacheLoading) return <div className="flex items-center justify-center gap-3 py-6 text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin text-primary" /><span className="text-sm">{t("healthAssessment.loading")}</span></div>;
@@ -125,28 +201,55 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
           {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}{expanded ? t("healthAssessment.hide") : t("healthAssessment.show")}
         </button>
       </div>
-      {assessment && expanded && hasData && (
-        <div className="space-y-2.5 animate-fade-in">
-          {sections.map((s) => {
-            const items = assessment[s.key] ?? [];
-            if (items.length === 0) return null;
-            return (
-              <div key={s.key} className={`rounded-xl border p-3.5 ${s.bgClass}`}>
-                <div className="flex items-center gap-2 mb-2.5"><div className={`w-7 h-7 rounded-lg ${s.iconBg} flex items-center justify-center flex-shrink-0`}><s.icon className={`w-3.5 h-3.5 ${s.colorClass}`} /></div><p className={`text-sm font-semibold ${s.colorClass}`}>{s.label}</p></div>
-                <ul className="space-y-1.5">{items.map((item, i) => <li key={i} className="flex items-start gap-2 text-sm text-foreground"><span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${s.colorClass.replace("text-", "bg-")}`} />{item}</li>)}</ul>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {assessment && expanded && hasData && renderAssessmentSections(assessment)}
       <div className="flex items-center justify-between pt-1">
-        <button onClick={() => setActiveType(null)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">{t("healthAssessment.switchType")}</button>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setActiveType(null)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">{t("healthAssessment.switchType")}</button>
+          {activeType === "latest" && (
+            <button onClick={loadHistory} disabled={historyLoading} className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+              {historyLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Clock className="w-3 h-3" />}
+              {showHistory ? t("healthAssessment.hideHistory") : t("healthAssessment.viewHistory")}
+            </button>
+          )}
+        </div>
         {hasDataChanged ? (
           <button onClick={() => callAPI(activeType!)} disabled={loading} className="text-xs text-primary hover:text-primary/80 transition-colors flex items-center gap-1 font-medium"><Sparkles className="w-3 h-3" />{t("healthAssessment.regenerate")}</button>
         ) : (
           <span className="text-xs text-muted-foreground/60 flex items-center gap-1 cursor-default select-none"><Sparkles className="w-3 h-3" />{t("healthAssessment.noChanges")}</span>
         )}
       </div>
+
+      {/* History section */}
+      {showHistory && activeType === "latest" && (
+        <div className="space-y-2 pt-1 border-t border-border/40 mt-2 animate-fade-in">
+          {historyEntries.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">{t("healthAssessment.historyEmpty")}</p>
+          ) : (
+            historyEntries.map((entry) => (
+              <div key={entry.id} className="rounded-lg border border-border/50 bg-muted/30 overflow-hidden">
+                <button
+                  onClick={() => setExpandedHistoryId(prev => prev === entry.id ? null : entry.id)}
+                  className="w-full flex items-center justify-between p-3 text-left hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-medium text-foreground">{t("healthAssessment.recordOf", { date: formatMonthYear(entry.record_date, language) })}</p>
+                      <p className="text-[11px] text-muted-foreground">{t("healthAssessment.generatedAt", { date: formatDate(entry.created_at) })}</p>
+                    </div>
+                  </div>
+                  {expandedHistoryId === entry.id ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
+                </button>
+                {expandedHistoryId === entry.id && (
+                  <div className="px-3 pb-3">
+                    {renderAssessmentSections(entry.assessment)}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
