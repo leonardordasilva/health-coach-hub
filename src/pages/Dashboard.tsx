@@ -98,6 +98,7 @@ export default function Dashboard() {
 
   const chartData = useMemo(() => [...records].sort((a, b) => a.record_date.localeCompare(b.record_date)).map(r => ({
     date: new Date(r.record_date + "T00:00:00").toLocaleDateString(localeMap[language], { month: "short", year: "2-digit" }),
+    fullDate: new Date(r.record_date + "T00:00:00").toLocaleDateString(localeMap[language], { day: "2-digit", month: "long", year: "numeric" }),
     value: r[selectedChartMetric.key] as number | null,
   })).filter(d => d.value !== null), [records, selectedChartMetric, language]);
 
@@ -265,7 +266,7 @@ export default function Dashboard() {
                             <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                             <XAxis dataKey="date" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
                             <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} domain={["auto", "auto"]} />
-                            <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} formatter={(value: number) => [`${value} ${selectedChartMetric.unit}`, selectedChartMetric.label]} />
+                            <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} labelFormatter={(_label, payload) => payload?.[0]?.payload?.fullDate ?? _label} formatter={(value: number) => [`${value} ${selectedChartMetric.unit}`, selectedChartMetric.label]} />
                             <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} activeDot={{ r: 6 }} />
                           </LineChart>
                         </ResponsiveContainer>
