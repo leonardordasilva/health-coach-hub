@@ -83,9 +83,9 @@ export default function HealthRecordsList({ records, loading, onEdit, onDetail, 
 
 function Metric({ label, value, unit }: { label: string; value: number | null | undefined; unit: string }) {
   return (
-    <div className="bg-muted/50 rounded-lg p-2 text-center">
-      <p className="text-xs text-muted-foreground leading-tight">{label}</p>
-      <p className="text-sm font-semibold text-foreground mt-0.5">{value != null ? `${Number(value).toFixed(1)}${unit}` : "—"}</p>
+    <div className="group bg-muted/50 rounded-lg p-2 text-center transition-all duration-200 hover:scale-105 hover:shadow-md hover:bg-accent cursor-default">
+      <p className="text-xs text-muted-foreground leading-tight transition-colors duration-200 group-hover:text-accent-foreground">{label}</p>
+      <p className="text-sm font-semibold text-foreground mt-0.5 transition-colors duration-200 group-hover:text-primary">{value != null ? `${Number(value).toFixed(1)}${unit}` : "—"}</p>
     </div>
   );
 }
