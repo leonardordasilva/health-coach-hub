@@ -65,6 +65,8 @@ const pt = {
   "login.emailPlaceholder": "seu@email.com",
   "login.password": "Senha",
   "login.passwordPlaceholder": "••••••••",
+  "login.showPassword": "Mostrar senha",
+  "login.hidePassword": "Ocultar senha",
   "login.submit": "Entrar",
   "login.submitting": "Entrando...",
   "login.forgotPassword": "Esqueci minha senha",
