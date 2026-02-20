@@ -52,6 +52,36 @@ export type Database = {
           },
         ]
       }
+      health_assessment_history: {
+        Row: {
+          assessment: Json
+          assessment_type: string
+          created_at: string
+          data_snapshot: string
+          id: string
+          record_date: string
+          user_id: string
+        }
+        Insert: {
+          assessment: Json
+          assessment_type?: string
+          created_at?: string
+          data_snapshot: string
+          id?: string
+          record_date: string
+          user_id: string
+        }
+        Update: {
+          assessment?: Json
+          assessment_type?: string
+          created_at?: string
+          data_snapshot?: string
+          id?: string
+          record_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       health_records: {
         Row: {
           basal_metabolism: number | null

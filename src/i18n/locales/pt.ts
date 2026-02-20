@@ -268,6 +268,11 @@ const pt = {
   "healthAssessment.regenerate": "Regenerar com novos dados",
   "healthAssessment.noChanges": "Sem alterações nos dados",
   "healthAssessment.error": "Erro ao gerar avaliação. Tente novamente.",
+  "healthAssessment.viewHistory": "Ver anteriores",
+  "healthAssessment.hideHistory": "Ocultar anteriores",
+  "healthAssessment.historyEmpty": "Nenhuma avaliação anterior encontrada.",
+  "healthAssessment.generatedAt": "Gerada em {{date}}",
+  "healthAssessment.recordOf": "Registro de {{date}}",
 
   // Admin
   "admin.pageTitle": "Painel de Usuários | Health Coach",

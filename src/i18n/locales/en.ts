@@ -263,6 +263,11 @@ const en: Record<string, string> = {
   "healthAssessment.regenerate": "Regenerate with new data",
   "healthAssessment.noChanges": "No data changes",
   "healthAssessment.error": "Error generating assessment. Try again.",
+  "healthAssessment.viewHistory": "View previous",
+  "healthAssessment.hideHistory": "Hide previous",
+  "healthAssessment.historyEmpty": "No previous assessments found.",
+  "healthAssessment.generatedAt": "Generated on {{date}}",
+  "healthAssessment.recordOf": "Record from {{date}}",
 
   // Admin
   "admin.pageTitle": "User Panel | Health Coach",
