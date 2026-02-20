@@ -63,6 +63,8 @@ const es: Record<string, string> = {
   "login.emailPlaceholder": "tu@email.com",
   "login.password": "Contraseña",
   "login.passwordPlaceholder": "••••••••",
+  "login.showPassword": "Mostrar contraseña",
+  "login.hidePassword": "Ocultar contraseña",
   "login.submit": "Iniciar sesión",
   "login.submitting": "Iniciando sesión...",
   "login.forgotPassword": "Olvidé mi contraseña",

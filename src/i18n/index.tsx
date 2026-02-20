@@ -33,7 +33,13 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   const setLanguage = useCallback((lang: Language) => {
     setLanguageState(lang);
     localStorage.setItem("hc_language", lang);
+    document.documentElement.lang = localeMap[lang];
   }, []);
+
+  // Set lang attribute on initial render
+  useState(() => {
+    document.documentElement.lang = localeMap[language];
+  });
 
   const t = useCallback(
     (key: string, vars?: Record<string, string | number>): string => {
