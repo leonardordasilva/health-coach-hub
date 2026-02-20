@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,16 +7,16 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/index";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import Login from "./pages/Login";
-import ForgotPassword from "./pages/ForgotPassword";
-import ConfirmReset from "./pages/ConfirmReset";
 
-import ChangePassword from "./pages/ChangePassword";
-import AdminPanel from "./pages/AdminPanel";
-import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
-import NotFound from "./pages/NotFound";
-import Landing from "./pages/Landing";
+const Login = lazy(() => import("./pages/Login"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ConfirmReset = lazy(() => import("./pages/ConfirmReset"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword"));
+const AdminPanel = lazy(() => import("./pages/AdminPanel"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Profile = lazy(() => import("./pages/Profile"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Landing = lazy(() => import("./pages/Landing"));
 
 const queryClient = new QueryClient();
 
@@ -40,18 +41,20 @@ function AuthRedirect() {
 
 function AppRoutes() {
   return (
-    <Routes>
-      <Route path="/" element={<AuthRedirect />} />
-      <Route path="/landing" element={<Landing />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/esqueci-senha" element={<ForgotPassword />} />
-      <Route path="/confirmar-reset" element={<ConfirmReset />} />
-      <Route path="/trocar-senha" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
-      <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
-      <Route path="/perfil" element={<ProtectedRoute requiredRole="user"><Profile /></ProtectedRoute>} />
-      <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><Dashboard /></ProtectedRoute>} />
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+    <Suspense fallback={<Spinner />}>
+      <Routes>
+        <Route path="/" element={<AuthRedirect />} />
+        <Route path="/landing" element={<Landing />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/esqueci-senha" element={<ForgotPassword />} />
+        <Route path="/confirmar-reset" element={<ConfirmReset />} />
+        <Route path="/trocar-senha" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
+        <Route path="/perfil" element={<ProtectedRoute requiredRole="user"><Profile /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><Dashboard /></ProtectedRoute>} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </Suspense>
   );
 }
 
