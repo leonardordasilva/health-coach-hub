@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useLanguage } from "@/i18n/index";
 import { Sparkles, ThumbsUp, ThumbsDown, AlertTriangle, Lightbulb, Loader2, ChevronDown, ChevronUp, ClipboardList, History, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { calculateBMI, calculateBodyAge, calculateBodyType, formatMonthYear } from "@/lib/health";
 import type { HealthRecord } from "@/types/health";
@@ -37,7 +38,7 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
   const [showHistory, setShowHistory] = useState(false);
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null);
+  const [selectedHistoryEntry, setSelectedHistoryEntry] = useState<HistoryEntry | null>(null);
 
   useEffect(() => {
     const loadCache = async () => {
@@ -226,30 +227,37 @@ export default function HealthAssessment({ record, allRecords, profile }: Props)
             <p className="text-xs text-muted-foreground py-2">{t("healthAssessment.historyEmpty")}</p>
           ) : (
             historyEntries.map((entry) => (
-              <div key={entry.id} className="rounded-lg border border-border/50 bg-muted/30 overflow-hidden">
-                <button
-                  onClick={() => setExpandedHistoryId(prev => prev === entry.id ? null : entry.id)}
-                  className="w-full flex items-center justify-between p-3 text-left hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
-                    <div>
-                      <p className="text-xs font-medium text-foreground">{t("healthAssessment.recordOf", { date: formatMonthYear(entry.record_date, language) })}</p>
-                      <p className="text-[11px] text-muted-foreground">{t("healthAssessment.generatedAt", { date: formatDate(entry.created_at) })}</p>
-                    </div>
-                  </div>
-                  {expandedHistoryId === entry.id ? <ChevronUp className="w-3.5 h-3.5 text-muted-foreground" /> : <ChevronDown className="w-3.5 h-3.5 text-muted-foreground" />}
-                </button>
-                {expandedHistoryId === entry.id && (
-                  <div className="px-3 pb-3">
-                    {renderAssessmentSections(entry.assessment)}
-                  </div>
-                )}
-              </div>
+              <button
+                key={entry.id}
+                onClick={() => setSelectedHistoryEntry(entry)}
+                className="w-full flex items-center gap-2 p-3 rounded-lg border border-border/50 bg-muted/30 text-left hover:bg-accent/50 transition-colors"
+              >
+                <Clock className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+                <div>
+                  <p className="text-xs font-medium text-foreground">{t("healthAssessment.recordOf", { date: formatMonthYear(entry.record_date, language) })}</p>
+                  <p className="text-[11px] text-muted-foreground">{t("healthAssessment.generatedAt", { date: formatDate(entry.created_at) })}</p>
+                </div>
+              </button>
             ))
           )}
         </div>
       )}
+
+      {/* History detail modal */}
+      <Dialog open={!!selectedHistoryEntry} onOpenChange={(open) => { if (!open) setSelectedHistoryEntry(null); }}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sm">
+              <Clock className="w-4 h-4 text-primary" />
+              {selectedHistoryEntry && t("healthAssessment.recordOf", { date: formatMonthYear(selectedHistoryEntry.record_date, language) })}
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              {selectedHistoryEntry && t("healthAssessment.generatedAt", { date: formatDate(selectedHistoryEntry.created_at) })}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedHistoryEntry && renderAssessmentSections(selectedHistoryEntry.assessment)}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
