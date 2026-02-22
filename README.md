@@ -198,15 +198,3 @@ O esquema principal é composto pelas seguintes tabelas:
 | `password_reset_tokens` | Tokens para redefinição de senha |
 
 Todas as tabelas possuem **Row Level Security (RLS)** habilitado para garantir isolamento e segurança dos dados por usuário.
-
----
-
-## 📄 Licença
-
-Este projeto está sob a licença MIT. Consulte o arquivo [LICENSE](LICENSE) para mais detalhes.
-
----
-
-<p align="center">
-  Feito com 💚 usando <a href="https://lovable.dev">Lovable</a>
-</p>
