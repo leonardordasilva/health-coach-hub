@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Search, Trash2, RefreshCw, Eye, UserPlus, Mail, Calendar, User, TrendingUp, KeyRound, CheckCircle2, ChevronDown } from "lucide-react";
+import { Search, Trash2, RefreshCw, Eye, UserPlus, Mail, Calendar, User, TrendingUp, TrendingDown, Users, KeyRound, CheckCircle2, ChevronDown } from "lucide-react";
 import { formatDate, formatDateTime } from "@/lib/health";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
