@@ -286,12 +286,12 @@ export default function Dashboard() {
               <div className="text-center">
                 <p className="text-[10px] uppercase font-bold text-primary/80 mb-1">BMI</p>
                 <p className="text-lg md:text-xl font-bold text-foreground">{bodyMetrics.bmi.value.toFixed(1)}</p>
-                <p className="text-[10px] text-muted-foreground">{bodyMetrics.bmi.category}</p>
+                <p className="text-[10px] text-muted-foreground">{bodyMetrics.bmi.classification}</p>
               </div>
               <div className="text-center border-x border-primary/20 flex flex-col items-center justify-center">
                 <p className="text-[10px] uppercase font-bold text-primary/80 mb-1">Body Type</p>
                 <p className="text-lg md:text-xl font-bold text-foreground">{bodyMetrics.bodyType.type}</p>
-                <p className="text-[10px] text-muted-foreground hidden sm:block whitespace-nowrap">{bodyMetrics.bodyType.subtype || t("dashboard.bodyType")}</p>
+                <p className="text-[10px] text-muted-foreground hidden sm:block whitespace-nowrap">{bodyMetrics.bodyType.description || t("dashboard.bodyType")}</p>
               </div>
               <div className="text-center">
                 <p className="text-[10px] uppercase font-bold text-primary/80 mb-1">Metabolic Age</p>
