@@ -34,7 +34,8 @@ function AuthRedirect() {
 
   if (loading || profileLoading) return <Spinner />;
   if (!user) return <Navigate to="/landing" replace />;
-  if (profile?.is_default_password) return <Navigate to="/trocar-senha" replace />;
+  if (profile?.is_default_password)
+    return <Navigate to="/trocar-senha" replace />;
   if (profile?.role === "admin") return <Navigate to="/admin" replace />;
   return <Navigate to="/dashboard" replace />;
 }
