@@ -1,1 +1,0 @@
-ALTER TABLE public.health_records ADD CONSTRAINT health_records_user_date_unique UNIQUE (user_id, record_date);
