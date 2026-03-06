@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec80",
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#102219",
+                    },
+                    fontFamily: {
+                        "display": ["Inter"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<title>Health Coach Landing Page</title>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-100">
+<!-- TopAppBar / Navbar -->
+<nav class="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/10">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex justify-between items-center h-16">
+<!-- Logo -->
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl">energy_savings_leaf</span>
+<span class="text-xl font-bold tracking-tight">Health Coach</span>
+</div>
+<!-- Desktop Nav -->
+<div class="hidden md:flex items-center space-x-8">
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">For Students</a>
+<a class="text-sm font-medium hover:text-primary transition-colors" href="#">For Professionals</a>
+</div>
+<!-- Actions -->
+<div>
+<button class="bg-primary text-background-dark px-5 py-2 rounded-full text-sm font-bold hover:opacity-90 transition-opacity">
+                        Login / Sign Up
+                    </button>
+</div>
+</div>
+</div>
+</nav>
+<!-- Hero Section -->
+<section class="relative overflow-hidden py-12 md:py-24">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="grid lg:grid-cols-2 gap-12 items-center">
+<div class="flex flex-col gap-8">
+<div class="space-y-4">
+<h1 class="text-4xl md:text-6xl font-black leading-tight tracking-tight">
+                            Transform your body with <span class="text-primary">AI</span> and real-time tracking
+                        </h1>
+<p class="text-lg text-slate-600 dark:text-slate-400 max-w-xl">
+                            Unlock your potential with advanced bioimpedance tracking and AI-driven insights. Get personalized coaching that adapts to your unique metabolism.
+                        </p>
+</div>
+<div class="flex flex-wrap gap-4">
+<button class="bg-primary text-background-dark px-8 py-4 rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-primary/20 transition-all">
+                            Get Started Now
+                        </button>
+<button class="border-2 border-primary text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-primary/10 transition-all">
+                            I am a Nutritionist
+                        </button>
+</div>
+</div>
+<div class="relative">
+<div class="absolute inset-0 bg-primary/20 blur-3xl rounded-full"></div>
+<img alt="App Dashboard Preview" class="relative z-10 w-full max-w-md mx-auto drop-shadow-2xl rounded-3xl" data-alt="3D high quality mobile phone mockup showing health dashboard" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhFc4qe-BMc9jw4fg7gVfoMFeCND56Qy64La6qj0yk1kHTQpqQXTRrEEfkW2LGHjx2iqmZ6ThXS2qUCmtWzCIzNFcMPP40E3UF6omQvzfOy5roEmyYB2vOC88F1eSjSm7EWbJfFlGbtQmX14GeBKeIUc74qlxJxr1MSEN_24Z04sCFcx_R-45F2rVzBWBNhawOjcBc_CQNbeLxGshQZLggyeLSkPWB1zqlw3dpos8Zm3QPZxUKlspF43MiEJzBTp8cOtGCLRGySv0"/>
+</div>
+</div>
+</div>
+</section>
+<!-- How it Works -->
+<section class="py-20 bg-white/50 dark:bg-white/5">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center mb-12">
+<h2 class="text-3xl font-bold mb-4">How it Works</h2>
+<div class="w-20 h-1.5 bg-primary mx-auto rounded-full"></div>
+</div>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Card 1 -->
+<div class="p-8 rounded-2xl bg-background-light dark:bg-background-dark border border-primary/10 hover:border-primary transition-colors flex flex-col items-center text-center">
+<div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">assignment_ind</span>
+</div>
+<h3 class="text-xl font-bold mb-2">Bioimpedance Log</h3>
+<p class="text-sm text-slate-500">Log your body composition data instantly with smart scale integration.</p>
+</div>
+<!-- Card 2 -->
+<div class="p-8 rounded-2xl bg-background-light dark:bg-background-dark border border-primary/10 hover:border-primary transition-colors flex flex-col items-center text-center">
+<div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">psychology</span>
+</div>
+<h3 class="text-xl font-bold mb-2">AI Analysis</h3>
+<p class="text-sm text-slate-500">Our neural engine analyzes your trends to provide actionable advice.</p>
+</div>
+<!-- Card 3 -->
+<div class="p-8 rounded-2xl bg-background-light dark:bg-background-dark border border-primary/10 hover:border-primary transition-colors flex flex-col items-center text-center">
+<div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">track_changes</span>
+</div>
+<h3 class="text-xl font-bold mb-2">Clear Goals</h3>
+<p class="text-sm text-slate-500">Stay motivated with milestones tailored to your specific physiology.</p>
+</div>
+<!-- Card 4 -->
+<div class="p-8 rounded-2xl bg-background-light dark:bg-background-dark border border-primary/10 hover:border-primary transition-colors flex flex-col items-center text-center">
+<div class="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+<span class="material-symbols-outlined text-primary text-3xl">show_chart</span>
+</div>
+<h3 class="text-xl font-bold mb-2">Evolution Charts</h3>
+<p class="text-sm text-slate-500">Visualize your progress with beautiful, high-fidelity data charts.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- For Professionals Section -->
+<section class="py-24 bg-slate-900 text-white overflow-hidden">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="grid lg:grid-cols-2 gap-16 items-center">
+<div class="space-y-8">
+<div class="inline-block px-4 py-1 rounded-full bg-primary/20 text-primary font-bold text-sm tracking-widest uppercase">
+                        Enterprise Solutions
+                    </div>
+<h2 class="text-4xl font-bold leading-tight">For Professionals</h2>
+<p class="text-slate-400 text-lg">
+                        Empower your practice with a complete suite of clinical-grade tools. Manage clients, monitor health data in real-time, and automate reporting.
+                    </p>
+<div class="space-y-6">
+<div class="flex gap-4 items-start">
+<div class="bg-primary p-2 rounded-lg">
+<span class="material-symbols-outlined text-background-dark">group</span>
+</div>
+<div>
+<h4 class="font-bold text-lg">Client Management</h4>
+<p class="text-slate-400 text-sm">Unified dashboard to oversee all active treatment plans.</p>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<div class="bg-primary p-2 rounded-lg">
+<span class="material-symbols-outlined text-background-dark">analytics</span>
+</div>
+<div>
+<h4 class="font-bold text-lg">Advanced Analytics</h4>
+<p class="text-slate-400 text-sm">Predictive modeling for client success and churn prevention.</p>
+</div>
+</div>
+<div class="flex gap-4 items-start">
+<div class="bg-primary p-2 rounded-lg">
+<span class="material-symbols-outlined text-background-dark">sensors</span>
+</div>
+<div>
+<h4 class="font-bold text-lg">Real-time Monitoring</h4>
+<p class="text-slate-400 text-sm">Get notified the moment client metrics deviate from goals.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="relative flex justify-center">
+<div class="w-full aspect-square bg-gradient-to-tr from-primary/30 to-transparent rounded-full absolute -top-10 -right-10 blur-3xl"></div>
+<div class="relative bg-slate-800 p-4 rounded-2xl border border-slate-700 shadow-2xl w-full max-w-lg">
+<img alt="Professional Dashboard" class="rounded-xl w-full h-auto" data-alt="Minimalist professional nutritionist data management dashboard interface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB12Zn-eGaSBN_vC0YBa9gIyM-wiou8IWgCMWevT7ojjTP1hjfRxNuPVhpflhqFYFlmrV3hgQtSSZH26htiga6KNLmXsJtpmls5gp3HhygPIzKNrZpE52-dbk8_7ZBbNxeSdjjwr-70xQSdY7VS5nHQ0KKHJ7Eel1ymrrfht48M6bhvHQVgKh9bSFiNjzaIyXJDxB0_7N-kqpKCDBl2_L_thLNkl-bhWBbFGW5AT_DNC4tQvaVXecr56WB7WeJhwUGsiUMVHv-yLJU"/>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer -->
+<footer class="py-12 bg-background-light dark:bg-background-dark border-t border-primary/10">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex flex-col md:flex-row justify-between items-center gap-8">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-3xl">energy_savings_leaf</span>
+<span class="text-xl font-bold tracking-tight">Health Coach</span>
+</div>
+<div class="flex gap-8 text-sm font-medium text-slate-500">
+<a class="hover:text-primary transition-colors" href="#">Privacy Policy</a>
+<a class="hover:text-primary transition-colors" href="#">Terms of Service</a>
+<a class="hover:text-primary transition-colors" href="#">Contact</a>
+</div>
+<div class="text-sm text-slate-400">
+                    © 2024 Health Coach AI. All rights reserved.
+                </div>
+</div>
+</div>
+</footer>
+</body></html>

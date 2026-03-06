@@ -10,7 +10,7 @@ import type { HealthRecord } from "@/types/health";
 interface Profile { height: number | null; birth_date: string | null; age: number | null; gender?: string | null; }
 interface Assessment { positivos: string[]; negativos: string[]; atencao: string[]; sugestoes: string[]; }
 type AssessmentType = "latest" | "general";
-interface Props { record: HealthRecord; allRecords: HealthRecord[]; profile: Profile; }
+interface Props { record: HealthRecord; allRecords: HealthRecord[]; profile: Profile; hideInternalCard?: boolean; }
 interface HistoryEntry { id: string; record_date: string; created_at: string; assessment: Assessment; }
 
 const recordSnapshot = (r: HealthRecord) => JSON.stringify([r.id, r.record_date, r.weight, r.body_fat, r.water, r.basal_metabolism, r.visceral_fat, r.muscle, r.protein, r.bone_mass]);

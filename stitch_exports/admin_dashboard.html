@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Health Coach Admin Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#13ec5b",
+                        "background-light": "#f6f8f6",
+                        "background-dark": "#102216",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden pb-20">
+<!-- Header -->
+<header class="flex items-center justify-between p-4 bg-background-light dark:bg-background-dark sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-3">
+<div class="size-10 rounded-full bg-primary/20 flex items-center justify-center overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Professional headshot of Dr Ana Clara" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDwM0i4CQ4IM_mhQX-0Ix-U_VAlId_9a-Q2-NEpZSkxqie8YDjPG_-XjTcsl6AtC4H1Eot42YOpBJ-43WUFNV5xv7e-OjsmUMpK2uvhG4lj3n_oIftp7aLA1hPT0NYKjFvklE3xbFPQCIJiZ9MSKNYsjRDAq8nTW9ZvcJ6lPXCePVpFTi0vOXoYQppu42jwuVRshYdY6IlcbWStBgy4sLsH4u37JhAkW4mX9aTAr2I2XSazl92sc3B2pyh4xlj6OWFN6ervtECDas8"/>
+</div>
+<div>
+<h1 class="text-sm font-bold leading-tight">Health Coach</h1>
+<p class="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Admin Panel</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 relative">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-400">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-primary rounded-full border-2 border-background-light dark:border-background-dark"></span>
+</button>
+</div>
+</header>
+<!-- Welcome Section -->
+<div class="p-4 @container">
+<div class="flex flex-col gap-4 @[400px]:flex-row @[400px]:items-center @[400px]:justify-between bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
+<div class="flex flex-col">
+<h2 class="text-xl font-bold tracking-tight">Good morning, Dr. Ana Clara!</h2>
+<p class="text-sm text-slate-500 dark:text-slate-400">Manage your students and monitor growth.</p>
+</div>
+<button class="flex items-center justify-center gap-2 bg-primary text-slate-900 font-bold px-4 py-2.5 rounded-lg hover:opacity-90 transition-opacity whitespace-nowrap">
+<span class="material-symbols-outlined">add</span>
+<span class="text-sm">New Student</span>
+</button>
+</div>
+</div>
+<!-- Growth Chart Section -->
+<div class="px-4 py-2">
+<div class="flex flex-col gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+<div class="flex justify-between items-start">
+<div>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Growth Chart</p>
+<h3 class="text-2xl font-bold mt-1">+124 Students</h3>
+</div>
+<div class="flex items-center gap-1 bg-primary/10 text-slate-800 dark:text-primary px-2 py-1 rounded text-xs font-bold">
+<span class="material-symbols-outlined text-sm">trending_up</span>
+                        12%
+                    </div>
+</div>
+<div class="flex min-h-[160px] flex-col gap-4">
+<svg fill="none" height="120" preserveaspectratio="none" viewbox="0 0 478 150" width="100%" xmlns="http://www.w3.org/2000/svg">
+<path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25V149H326.769H0V109Z" fill="url(#paint0_linear_growth)"></path>
+<path d="M0 109C18.1538 109 18.1538 21 36.3077 21C54.4615 21 54.4615 41 72.6154 41C90.7692 41 90.7692 93 108.923 93C127.077 93 127.077 33 145.231 33C163.385 33 163.385 101 181.538 101C199.692 101 199.692 61 217.846 61C236 61 236 45 254.154 45C272.308 45 272.308 121 290.462 121C308.615 121 308.615 149 326.769 149C344.923 149 344.923 1 363.077 1C381.231 1 381.231 81 399.385 81C417.538 81 417.538 129 435.692 129C453.846 129 453.846 25 472 25" stroke="#13ec5b" stroke-linecap="round" stroke-width="4"></path>
+<defs>
+<lineargradient gradientunits="userSpaceOnUse" id="paint0_linear_growth" x1="236" x2="236" y1="1" y2="149">
+<stop stop-color="#13ec5b" stop-opacity="0.2"></stop>
+<stop offset="1" stop-color="#13ec5b" stop-opacity="0"></stop>
+</lineargradient>
+</defs>
+</svg>
+<div class="flex justify-between text-[11px] font-semibold text-slate-400 uppercase">
+<span>Jan</span>
+<span>Feb</span>
+<span>Mar</span>
+<span>Apr</span>
+<span>May</span>
+<span>Jun</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Student Management Header -->
+<div class="px-4 pt-6 pb-2">
+<h2 class="text-lg font-bold">Student Management</h2>
+</div>
+<!-- Search and Filter -->
+<div class="px-4 flex gap-2 mb-4">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
+<input class="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary focus:border-transparent outline-none" placeholder="Search students..." type="text"/>
+</div>
+<button class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-2 rounded-lg flex items-center justify-center hover:bg-slate-50">
+<span class="material-symbols-outlined text-slate-600 dark:text-slate-400">tune</span>
+</button>
+</div>
+<!-- Student List -->
+<div class="px-4 flex flex-col gap-3">
+<!-- Student 1 -->
+<div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-3">
+<div class="size-11 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 font-bold overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Avatar of Rodrigo Silva" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCChpn8Ped90_Bsh23glxVHefGjyvjPu1WIXldeKVsCyLhIBulE-PjU6NgAsZQCOhC-E5aJmUO40vRfaQvnwNeBDrPRja-x9PyuzDldIqWUJMnDbXqxRFlHqNTboQ2meTXyCm3AF62QKk_YYBuHPWEJeywOCjTY2Sgn8Y0OIrtiTg2kOi7MdURe-A2vOyBZhpM2OAwzvLSfs6TmlC4PpBddHnCyyaYb6dfktaiR9c2WJlQvYuJYeCH9IzPgrocwVpiPuet-lEiieIA"/>
+</div>
+<div>
+<h4 class="text-sm font-bold">Rodrigo Silva</h4>
+<p class="text-xs text-slate-500">rodrigo.silva@email.com</p>
+<span class="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-slate-700 dark:text-primary uppercase">Active</span>
+</div>
+</div>
+<div class="flex gap-1">
+<button class="p-2 text-slate-400 hover:text-slate-900 transition-colors" title="Reset Password"><span class="material-symbols-outlined text-[20px]">key</span></button>
+<button class="p-2 text-slate-400 hover:text-primary transition-colors" title="View Details"><span class="material-symbols-outlined text-[20px]">insights</span></button>
+<button class="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Delete Student"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+<!-- Student 2 -->
+<div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-3">
+<div class="size-11 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 font-bold overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Avatar of Mariana Costa" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCcCDNo4RtTKHLAYiyE_ag6Eqp-qhgYu7_MWbMEBzs_daqwoyPu5RppqlLrASmWnZBtSHCDd6OxH0oNR4w-S5XO3vgHZ-4vNnbmh4Os-oVOhuRsIsLDGGn1Mtyf6kCb4v9FbPGEk4OZZYw7jh0Zj8l0sT0E4N8UOxLXNHXat5-r_uQHP1HXH678GRec24Jroge9paYpqmcqEzVUSyprqqUbXUrM673dI8w-639gWGrJWlqPyOzvk_9kmKx82k-tVp__sAvJK8siW9w"/>
+</div>
+<div>
+<h4 class="text-sm font-bold">Mariana Costa</h4>
+<p class="text-xs text-slate-500">mariana.c@email.com</p>
+<span class="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-500 uppercase">Pending</span>
+</div>
+</div>
+<div class="flex gap-1">
+<button class="p-2 text-slate-400 hover:text-slate-900 transition-colors"><span class="material-symbols-outlined text-[20px]">key</span></button>
+<button class="p-2 text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">insights</span></button>
+<button class="p-2 text-slate-400 hover:text-red-500 transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+<!-- Student 3 -->
+<div class="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800 flex items-center justify-between shadow-sm">
+<div class="flex items-center gap-3">
+<div class="size-11 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 font-bold overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Avatar of Lucas Ferreira" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB89PCeJLk0YZGE3KMD1dhjZL1kUVVb0a5YGBInTS3WxRwzyh3QnaNyLtRpkVY-d5PsRqbg8QF5VZXKQV4SNbnPBCJzujN6QKM3yJsZeBshzeaYjpK2Y3zKcUEt8eEUVsWEwMr6dofAoNGunrkGVBjdiaBWRD4FhxnqZjqIZb9hLOMwfuDXYWBhaQGhRgm4YaU251pynJxWCjQ9-MKjJbPoE9Rv-zQcZy8RNGauGCyS_UU6-PNtPX1uyzXzp9EOn70yI-CtienGs9g"/>
+</div>
+<div>
+<h4 class="text-sm font-bold">Lucas Ferreira</h4>
+<p class="text-xs text-slate-500">lucas.fer@email.com</p>
+<span class="inline-block mt-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-primary/10 text-slate-700 dark:text-primary uppercase">Active</span>
+</div>
+</div>
+<div class="flex gap-1">
+<button class="p-2 text-slate-400 hover:text-slate-900 transition-colors"><span class="material-symbols-outlined text-[20px]">key</span></button>
+<button class="p-2 text-slate-400 hover:text-primary transition-colors"><span class="material-symbols-outlined text-[20px]">insights</span></button>
+<button class="p-2 text-slate-400 hover:text-red-500 transition-colors"><span class="material-symbols-outlined text-[20px]">delete</span></button>
+</div>
+</div>
+</div>
+<!-- Spacer for Bottom Nav -->
+<div class="h-10"></div>
+<!-- Bottom Navigation Bar -->
+<nav class="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-4 pb-6 pt-2 flex justify-around items-center z-50">
+<a class="flex flex-col items-center gap-1 text-primary" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-bold uppercase">Home</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">group</span>
+<span class="text-[10px] font-bold uppercase">Students</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">exercise</span>
+<span class="text-[10px] font-bold uppercase">Programs</span>
+</a>
+<a class="flex flex-col items-center gap-1 text-slate-400 dark:text-slate-500" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-[10px] font-bold uppercase">Settings</span>
+</a>
+</nav>
+</div>
+</body></html>
