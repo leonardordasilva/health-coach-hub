@@ -7,16 +7,16 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { LanguageProvider } from "@/i18n/index";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import Landing from "@/pages/Landing";
+import Landing from "./pages/Landing";
 
-const Login = lazy(() => import("@/pages/Login"));
-const ForgotPassword = lazy(() => import("@/pages/ForgotPassword"));
-const ConfirmReset = lazy(() => import("@/pages/ConfirmReset"));
-const ChangePassword = lazy(() => import("@/pages/ChangePassword"));
-const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
-const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const Profile = lazy(() => import("@/pages/Profile"));
-const NotFound = lazy(() => import("@/pages/NotFound"));
+const Login = lazy(() => import("./pages/Login"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ConfirmReset = lazy(() => import("./pages/ConfirmReset"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword"));
+const AdminPanel = lazy(() => import("./pages/AdminPanel"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Profile = lazy(() => import("./pages/Profile"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient();
 
@@ -34,8 +34,7 @@ function AuthRedirect() {
 
   if (loading || profileLoading) return <Spinner />;
   if (!user) return <Navigate to="/landing" replace />;
-  if (profile?.is_default_password)
-    return <Navigate to="/trocar-senha" replace />;
+  if (profile?.is_default_password) return <Navigate to="/trocar-senha" replace />;
   if (profile?.role === "admin") return <Navigate to="/admin" replace />;
   return <Navigate to="/dashboard" replace />;
 }
@@ -49,38 +48,10 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/esqueci-senha" element={<ForgotPassword />} />
         <Route path="/confirmar-reset" element={<ConfirmReset />} />
-        <Route
-          path="/trocar-senha"
-          element={
-            <ProtectedRoute>
-              <ChangePassword />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute requiredRole="admin">
-              <AdminPanel />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/perfil"
-          element={
-            <ProtectedRoute requiredRole="user">
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute requiredRole="user">
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/trocar-senha" element={<ProtectedRoute><ChangePassword /></ProtectedRoute>} />
+        <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPanel /></ProtectedRoute>} />
+        <Route path="/perfil" element={<ProtectedRoute requiredRole="user"><Profile /></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute requiredRole="user"><Dashboard /></ProtectedRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
